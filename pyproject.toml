@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "trend_classifier"
+version = "0.1.0"
+description = "trend classifier"
+authors = ["Krystian Safjan"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "^1.4.3"
+matplotlib = "^3.5.3"
+plotly = "^5.10.0"
+yfinance = "^0.1.74"
+
+[tool.poetry.dev-dependencies]
+jupytext = "^1.14.1"
+notebook = "^6.4.12"
+black = "^22.6.0"
+pre-commit = "^2.20.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
