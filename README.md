@@ -32,7 +32,7 @@ For graphical output use `Segmenter.plot_segments()`:
 seg.plot_segments(fig_size=(8, 4))
 ```
 
-![Segmentation example](img/screenshoot_1.jpg)
+![Segmentation example](https://github.com/izikeros/trend_classifier/blob/main/img/screenshoot_1.jpg?raw=true)
 
 After calling method `Segmenter.calculate_segments()` segments are identified and information is stored in `Segmenter.segments` as list of Segment objects. Each Segment object. Each Segment object has attributes such as 'start', 'stop' - range of indices for the extracted segment, slope and many more attributes that might be helpful for further analysis.
 
