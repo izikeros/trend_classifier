@@ -4,14 +4,14 @@ from trend_classifier.models import Metrics
 
 
 class Config(BaseModel):
-    N: int = 40
+    N: int = 60
     overlap_ratio: float = 0.33
 
     # deviation for slope (RAE -> 2, AE -> 100)
-    alpha: float = 100
+    alpha: float = 2
     # deviation for offset (RAE -> 2, AE -> 0.25)
     beta: float = 2
-    metrics_alpha: Metrics = Metrics.ABSOLUTE_ERROR
+    metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
     metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
 
 
