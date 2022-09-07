@@ -1,4 +1,3 @@
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -28,15 +27,15 @@ class Segment(BaseModel):
 
     start: int
     stop: int
-    slopes: List[float]
-    offsets: List[float]
-    slopes_std: float | None = None
-    offsets_std: float | None = None
-    slope: float | None = None
-    offset: float | None = None
-    std: float | None = None
-    span: float | None = None
-    reason_for_new_segment: str | None = None
+    slopes: list[float]
+    offsets: list[float]
+    slopes_std: Optional[float] = None
+    offsets_std: Optional[float] = None
+    slope: Optional[float] = None
+    offset: Optional[float] = None
+    std: Optional[float] = None
+    span: Optional[float] = None
+    reason_for_new_segment: Optional[str] = None
 
     def __str__(self):
         return f"Segment({self.start}, {self.stop}, {self.slope:.4g})"
@@ -74,20 +73,20 @@ class Segmenter:
     def __init__(
         self,
         config: Config,
-        x: Optional[List[int]] = None,
-        y: Optional[List[int]] = None,
+        x: Optional[list[int]] = None,
+        y: Optional[list[int]] = None,
     ):
-        self.y_de_trended: Optional[List] = None
+        self.y_de_trended: Optional[list] = None
         self.config = config
-        self.segments: List[Segment] | None = None
-        self.x: List[int] | None = x
-        self.y: List[float] | None = y
-        self.slope: float | None = None
-        self.offset: float | None = None
-        self.slopes_std: float | None = None
-        self.offsets_std: float | None = None
+        self.segments: Optional[list[Segment]] = None
+        self.x: Optional[list[int]] = x
+        self.y: Optional[list[float]] = y
+        self.slope: Optional[float] = None
+        self.offset: Optional[float] = None
+        self.slopes_std: Optional[float] = None
+        self.offsets_std: Optional[float] = None
 
-    def calculate_segments(self):
+    def calculate_segments(self) -> None:
         """Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -118,8 +117,10 @@ class Segmenter:
             print("N = ", N)
             print("overlap_ratio = ", overlap_ratio)
             off = 1
-        for start in range(0, len(self.x) - N, off):
-            fit = np.polyfit(self.x[start : start + N], self.y[start : start + N], 1)
+        for start in range(start=0, stop=len(self.x) - N, step=off):
+            fit = np.polyfit(
+                x=self.x[start : start + N], y=self.y[start : start + N], deg=1
+            )
             slopes.append(fit[0])
             offsets.append(fit[1])
 
@@ -169,13 +170,15 @@ class Segmenter:
         return segments
 
     @staticmethod
-    def describe_reason_for_new_segment(is_offset_different, is_slope_different):
+    def describe_reason_for_new_segment(
+        is_offset_different: bool, is_slope_different: bool
+    ) -> str:
         reason = "slope" if is_slope_different else "offset"
         if is_slope_different and is_offset_different:
             reason = "slope and offset"
         return reason
 
-    def describe_segments(self):
+    def describe_segments(self) -> None:
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -186,7 +189,7 @@ class Segmenter:
             yy = self.y[start : stop + 1]
 
             # trend calculation
-            fit = np.polyfit(xx, yy, 1)
+            fit = np.polyfit(x=xx, y=yy, deg=1)
             fit_fn = np.poly1d(fit)
 
             # calculate point for the trend line
@@ -218,7 +221,12 @@ class Segmenter:
             self.segments[idx].slopes_std = np.std(self.segments[idx].slopes)
             self.segments[idx].offsets_std = np.std(self.segments[idx].offsets)
 
-    def plot_segment(self, idx: Union[List[int], int], col="red", fig_size=(10, 5)):
+    def plot_segment(
+        self,
+        idx: Union[list[int], int],
+        col: str = "red",
+        fig_size: tuple[float] = (10, 5),
+    ) -> None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
         if isinstance(idx, int):
@@ -236,7 +244,7 @@ class Segmenter:
             plt.scatter(xx[-1], yy[-1], color="k", s=10)
         plt.show()
 
-    def plot_segments(self, fig_size=(10, 5)):
+    def plot_segments(self, fig_size: tuple[float] = (10, 5)) -> None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
         for segment in self.segments:
@@ -246,7 +254,7 @@ class Segmenter:
 
             xx = self.x[start:stop]
             yy = self.y[start:stop]
-            fit = np.polyfit(xx, yy, 1)
+            fit = np.polyfit(x=xx, y=yy, deg=1)
             fit_fn = np.poly1d(fit)
 
             all_positive_slopes = all([v >= 0 for v in slopes])
@@ -271,12 +279,12 @@ class Segmenter:
             )
         plt.show()
 
-    def plot_detrended_signal(self, fig_size=(10, 5)):
+    def plot_detrended_signal(self, fig_size=(10, 5)) -> None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, "b-")  # noqa: FKA01
         plt.show()
 
-    def calc_area_outside_trend(self):
+    def calc_area_outside_trend(self) -> float:
         """Calculate area outside trend.
 
         Sum of absolute values of the points below/above the trend line.
@@ -286,9 +294,10 @@ class Segmenter:
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)
 
 
-def determine_trend_end_point(off, start):
+def determine_trend_end_point(off: int, start: int) -> int:
     s_stop = start + off / 2
-    return s_stop
+    return int(s_stop)
+
 
 # TODO: KS: 2022-09-06: Automatically determine parameters based on history:
 #  see the difference e.g. between AAPL and BTC
