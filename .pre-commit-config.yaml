@@ -8,7 +8,7 @@ repos:
   # Ensure that all files end with a newline
   # Harmonize line endings
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.3.0
     hooks:
       - id: check-added-large-files   # prevents giant files from being committed.
       - id: check-case-conflict       # checks for files that would conflict in case-insensitive filesystems.
@@ -25,7 +25,7 @@ repos:
 
   #  A formatter for finding and removing unused import statements.
   - repo: https://github.com/hadialqattan/pycln
-    rev: v1.2.5
+    rev: v2.1.1
     hooks:
       - id: pycln
         args: [ --all ]
@@ -35,27 +35,27 @@ repos:
   #   is set to the same style that is enforced by zimports.
   #   E.g. add `import-order-style = google` to your .flake8 file.
   - repo: https://github.com/sqlalchemyorg/zimports/
-    rev: v0.5.0
+    rev: v0.6.0
     hooks:
       - id: zimports
         args: [ --style=pycharm ]
 
   # The uncompromising code formatter
   - repo: https://github.com/psf/black
-    rev: 22.1.0
+    rev: 22.8.0
     hooks:
       - id: black
 
   # A tool to automatically upgrade syntax for newer versions of the python language.
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v2.37.3
     hooks:
       - id: pyupgrade
         args: [ --py39-plus ]
 
   # A tool to automatically fix common style issues in Python code. Has plugins.
   - repo: https://github.com/pycqa/flake8
-    rev: '4.0.1'
+    rev: '5.0.4'
     hooks:
       - id: flake8
         exclude: (__pycache__|.venv|tmp|.tox)
@@ -63,7 +63,7 @@ repos:
 
   # Find common security issues in your Python code using bandit.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
-    rev: v1.0.5
+    rev: v1.0.6
     hooks:
       - id: python-bandit-vulnerability-check
         args: [ -r, --ini, .bandit ]
