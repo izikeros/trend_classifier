@@ -1,49 +1,13 @@
+import warnings
 from typing import Optional
 from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
-from pydantic import BaseModel
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
-
-
-class Segment(BaseModel):
-    """Segment of a time series.
-
-    Attributes:
-        self.start: Start index of the segment.
-        self.stop: End index of the segment.
-        self.slope: Slope of the segment.
-        self.offset: Offset of the segment.
-        self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-        self.slopes: List of slopes of the micro-segments.
-        self.offsets: Offsets of the micro-segments.
-        self.slopes_std: Standard deviation of the slopes.
-        self.offsets_std: Standard deviation of the offsets.
-        self.span: span of the values in the segment normalized by the mean value of the
-                            segment. Indicator if the volatility of the segment is high or low.
-    """
-
-    start: int
-    stop: int
-    slopes: list[float]
-    offsets: list[float]
-    slopes_std: Optional[float] = None
-    offsets_std: Optional[float] = None
-    slope: Optional[float] = None
-    offset: Optional[float] = None
-    std: Optional[float] = None
-    span: Optional[float] = None
-    reason_for_new_segment: Optional[str] = None
-
-    def __str__(self):
-        return f"Segment({self.start}, {self.stop}, {self.slope:.4g})"
-
-    def __repr__(self):
-        # FIXME: KS: 2022-09-06: repr should be unambiguous, i.e. it should be possible to
-        #  reconstruct the object from the repr. This is not the case here.
-        return str(self)
+from trend_classifier.segment import Segment
+from trend_classifier.types import FigSize
 
 
 def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
@@ -72,15 +36,60 @@ def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
 class Segmenter:
     def __init__(
         self,
-        config: Config,
         x: Optional[list[int]] = None,
         y: Optional[list[int]] = None,
+        df=None,
+        column: Optional[str] = "Adj Close",
+        config: Optional[Config] = None,
+        n: Optional[int] = None,
     ):
+
+        # Handle configuration
+        if config is None:
+            # use default configuration if no configuration is provided
+            self.config = Config()
+            if n is not None:
+                # override default N in configuration if N is provided
+                self.config.N = n
+        if config is not None and n is not None:
+            # raise error
+            raise ValueError("Provide either config or N, not both.")
+
+        # --- Handle input data
+        # error - most likely pandas dataframe as argument instead of kwarg
+        if x is not None and not isinstance(x, list):
+            # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
+            raise TypeError(
+                "x must be a list, got {}. For pandas dataframe use 'df' keyword argument".format(
+                    type(x)
+                )
+            )
+        # error - no input data provided
+        if x is None and y is None and df is None:
+            raise ValueError("Provide timeseries data: either x and y or df.")
+
+        # error - ambiguous input data provided - both x,y and df provided
+        if x is not None and y is not None and df is not None:
+            raise ValueError(
+                "Provide timeseries data: either (x and y) or (df), not all."
+            )
+        # input data provided as x and y
+        if x is not None and y is not None:
+            self.x = x
+            self.y = y
+
+        # make warning if column provided but not dataframe
+        if df is None and column is not None:
+            warnings.warn("No dataframe provided, column argument will be ignored.")
+
+        # input data provided as dataframe
+        if df is not None:
+            self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
+            self.y = df[column].tolist()
+
         self.y_de_trended: Optional[list] = None
-        self.config = config
+
         self.segments: Optional[list[Segment]] = None
-        self.x: Optional[list[int]] = x
-        self.y: Optional[list[float]] = y
         self.slope: Optional[float] = None
         self.offset: Optional[float] = None
         self.slopes_std: Optional[float] = None
@@ -167,6 +176,10 @@ class Segmenter:
             )
         )
         self.segments = segments
+
+        # add extra information to the segments
+        self._describe_segments()
+
         return segments
 
     @staticmethod
@@ -178,7 +191,7 @@ class Segmenter:
             reason = "slope and offset"
         return reason
 
-    def describe_segments(self) -> None:
+    def _describe_segments(self) -> None:
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -225,7 +238,7 @@ class Segmenter:
         self,
         idx: Union[list[int], int],
         col: str = "red",
-        fig_size: tuple[float] = (10, 5),
+        fig_size: FigSize = (10, 5),
     ) -> None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
@@ -242,9 +255,12 @@ class Segmenter:
             plt.plot(xx, yy, color=col, linestyle="-", linewidth=2)
             plt.scatter(xx[0], yy[0], color="k", s=10)
             plt.scatter(xx[-1], yy[-1], color="k", s=10)
+            # add x- and y-axis labels
+            plt.xlabel("time", fontsize=14)
+            plt.ylabel("value", fontsize=14)
         plt.show()
 
-    def plot_segments(self, fig_size: tuple[float] = (10, 5)) -> None:
+    def plot_segments(self, fig_size: FigSize = (10, 5)) -> None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
         for segment in self.segments:
@@ -277,11 +293,17 @@ class Segmenter:
                 linestyle="--",
                 linewidth=3,
             )
+        # add x- and y-axis labels
+        plt.xlabel("time", fontsize=14)
+        plt.ylabel("value", fontsize=14)
         plt.show()
 
-    def plot_detrended_signal(self, fig_size=(10, 5)) -> None:
+    def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -> None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, "b-")  # noqa: FKA01
+        # add x- and y-axis labels
+        plt.xlabel("time", fontsize=14)
+        plt.ylabel("de-trended value", fontsize=14)
         plt.show()
 
     def calc_area_outside_trend(self) -> float:
