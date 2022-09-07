@@ -1,3 +1,4 @@
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -49,7 +50,7 @@ class Segment(BaseModel):
 def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
     """Calculate how much two parameters differ.
 
-    Used e.g. to calculate how much slopes of two micro-segments differ.
+    Used e.g. to calculate how much the slopes of two micro-segments differ.
 
     Args:
         a: First parameter.
@@ -86,7 +87,7 @@ class Segmenter:
         self.slopes_std: Optional[float] = None
         self.offsets_std: Optional[float] = None
 
-    def calculate_segments(self) -> None:
+    def calculate_segments(self) -> List[Segment]:
         """Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -295,6 +296,7 @@ class Segmenter:
 
 
 def determine_trend_end_point(off: int, start: int) -> int:
+    # TODO: KS: 2022-09-06: proper calculation of the end of the segment
     s_stop = start + off / 2
     return int(s_stop)
 
@@ -307,4 +309,4 @@ def determine_trend_end_point(off: int, start: int) -> int:
 
 # TODO: KS: 2022-09-06: improve quality on basic data V-shape or lambda-shape
 
-# TODO: KS: 2022-09-06: proper calculation of the end of the segment
+# TODO: KS: 2022-09-07: add docstrings
