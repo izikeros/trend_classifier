@@ -70,4 +70,4 @@ and you should see something like this:
 
 ## License
 
-[MIT](LICENSE) © [Krystian Safjan](https://rodrigobdz.github.io/).
+[MIT](LICENSE) © [Krystian Safjan](https://safjan.com/).
