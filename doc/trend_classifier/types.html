@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>trend_classifier.configuration API documentation</title>
+<title>trend_classifier.types API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,46 +19,17 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>trend_classifier.configuration</code></h1>
+<h1 class="title">Module <code>trend_classifier.types</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;&#34;&#34;&#34;
-from pydantic import BaseModel
-from trend_classifier.models import Metrics
+<pre><code class="python">from typing import Tuple
+from typing import Union
 
-
-class Config(BaseModel):
-    N: int = 60
-    overlap_ratio: float = 0.33
-
-    # deviation for slope (RAE -&gt; 2, AE -&gt; 100)
-    alpha: float = 2
-    # deviation for offset (RAE -&gt; 2, AE -&gt; 0.25)
-    beta: float = 2
-    metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
-    metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
-
-
-CONFIG_ABS = Config(
-    N=40,
-    overlap_ratio=0.33,
-    alpha=100,
-    beta=2,
-    metrics_alpha=Metrics.ABSOLUTE_ERROR,
-    metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
-)
-CONFIG_REL = Config(
-    N=40,
-    overlap_ratio=0.33,
-    alpha=2,
-    beta=2,
-    metrics_alpha=Metrics.RELATIVE_ABSOLUTE_ERROR,
-    metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
-)</code></pre>
+FigSize = Tuple[Union[float, int], Union[float, int]]</code></pre>
 </details>
 </section>
 <section>
@@ -68,64 +39,6 @@ CONFIG_REL = Config(
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-classes">Classes</h2>
-<dl>
-<dt id="trend_classifier.configuration.Config"><code class="flex name class">
-<span>class <span class="ident">Config</span></span>
-<span>(</span><span>**data: Any)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Create a new model by parsing and validating input data from keyword arguments.</p>
-<p>Raises ValidationError if the input data cannot be parsed to form a valid model.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class Config(BaseModel):
-    N: int = 60
-    overlap_ratio: float = 0.33
-
-    # deviation for slope (RAE -&gt; 2, AE -&gt; 100)
-    alpha: float = 2
-    # deviation for offset (RAE -&gt; 2, AE -&gt; 0.25)
-    beta: float = 2
-    metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
-    metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR</code></pre>
-</details>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>pydantic.main.BaseModel</li>
-<li>pydantic.utils.Representation</li>
-</ul>
-<h3>Class variables</h3>
-<dl>
-<dt id="trend_classifier.configuration.Config.N"><code class="name">var <span class="ident">N</span> : int</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.configuration.Config.alpha"><code class="name">var <span class="ident">alpha</span> : float</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.configuration.Config.beta"><code class="name">var <span class="ident">beta</span> : float</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.configuration.Config.metrics_alpha"><code class="name">var <span class="ident">metrics_alpha</span> : <a title="trend_classifier.models.Metrics" href="models.html#trend_classifier.models.Metrics">Metrics</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.configuration.Config.metrics_beta"><code class="name">var <span class="ident">metrics_beta</span> : <a title="trend_classifier.models.Metrics" href="models.html#trend_classifier.models.Metrics">Metrics</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.configuration.Config.overlap_ratio"><code class="name">var <span class="ident">overlap_ratio</span> : float</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-</dl>
-</dd>
-</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -137,21 +50,6 @@ CONFIG_REL = Config(
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="trend_classifier" href="index.html">trend_classifier</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-classes">Classes</a></h3>
-<ul>
-<li>
-<h4><code><a title="trend_classifier.configuration.Config" href="#trend_classifier.configuration.Config">Config</a></code></h4>
-<ul class="two-column">
-<li><code><a title="trend_classifier.configuration.Config.N" href="#trend_classifier.configuration.Config.N">N</a></code></li>
-<li><code><a title="trend_classifier.configuration.Config.alpha" href="#trend_classifier.configuration.Config.alpha">alpha</a></code></li>
-<li><code><a title="trend_classifier.configuration.Config.beta" href="#trend_classifier.configuration.Config.beta">beta</a></code></li>
-<li><code><a title="trend_classifier.configuration.Config.metrics_alpha" href="#trend_classifier.configuration.Config.metrics_alpha">metrics_alpha</a></code></li>
-<li><code><a title="trend_classifier.configuration.Config.metrics_beta" href="#trend_classifier.configuration.Config.metrics_beta">metrics_beta</a></code></li>
-<li><code><a title="trend_classifier.configuration.Config.overlap_ratio" href="#trend_classifier.configuration.Config.overlap_ratio">overlap_ratio</a></code></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>

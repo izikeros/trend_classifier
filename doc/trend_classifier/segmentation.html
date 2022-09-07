@@ -26,52 +26,16 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from typing import Optional
+<pre><code class="python">import warnings
+from typing import Optional
 from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
-from pydantic import BaseModel
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
-
-
-class Segment(BaseModel):
-    &#34;&#34;&#34;Segment of a time series.
-
-    Attributes:
-        self.start: Start index of the segment.
-        self.stop: End index of the segment.
-        self.slope: Slope of the segment.
-        self.offset: Offset of the segment.
-        self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-        self.slopes: List of slopes of the micro-segments.
-        self.offsets: Offsets of the micro-segments.
-        self.slopes_std: Standard deviation of the slopes.
-        self.offsets_std: Standard deviation of the offsets.
-        self.span: span of the values in the segment normalized by the mean value of the
-                            segment. Indicator if the volatility of the segment is high or low.
-    &#34;&#34;&#34;
-
-    start: int
-    stop: int
-    slopes: list[float]
-    offsets: list[float]
-    slopes_std: Optional[float] = None
-    offsets_std: Optional[float] = None
-    slope: Optional[float] = None
-    offset: Optional[float] = None
-    std: Optional[float] = None
-    span: Optional[float] = None
-    reason_for_new_segment: Optional[str] = None
-
-    def __str__(self):
-        return f&#34;Segment({self.start}, {self.stop}, {self.slope:.4g})&#34;
-
-    def __repr__(self):
-        # FIXME: KS: 2022-09-06: repr should be unambiguous, i.e. it should be possible to
-        #  reconstruct the object from the repr. This is not the case here.
-        return str(self)
+from trend_classifier.segment import Segment
+from trend_classifier.types import FigSize
 
 
 def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
@@ -100,15 +64,60 @@ def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
 class Segmenter:
     def __init__(
         self,
-        config: Config,
         x: Optional[list[int]] = None,
         y: Optional[list[int]] = None,
+        df=None,
+        column: Optional[str] = &#34;Adj Close&#34;,
+        config: Optional[Config] = None,
+        n: Optional[int] = None,
     ):
+
+        # Handle configuration
+        if config is None:
+            # use default configuration if no configuration is provided
+            self.config = Config()
+            if n is not None:
+                # override default N in configuration if N is provided
+                self.config.N = n
+        if config is not None and n is not None:
+            # raise error
+            raise ValueError(&#34;Provide either config or N, not both.&#34;)
+
+        # --- Handle input data
+        # error - most likely pandas dataframe as argument instead of kwarg
+        if x is not None and not isinstance(x, list):
+            # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
+            raise TypeError(
+                &#34;x must be a list, got {}. For pandas dataframe use &#39;df&#39; keyword argument&#34;.format(
+                    type(x)
+                )
+            )
+        # error - no input data provided
+        if x is None and y is None and df is None:
+            raise ValueError(&#34;Provide timeseries data: either x and y or df.&#34;)
+
+        # error - ambiguous input data provided - both x,y and df provided
+        if x is not None and y is not None and df is not None:
+            raise ValueError(
+                &#34;Provide timeseries data: either (x and y) or (df), not all.&#34;
+            )
+        # input data provided as x and y
+        if x is not None and y is not None:
+            self.x = x
+            self.y = y
+
+        # make warning if column provided but not dataframe
+        if df is None and column is not None:
+            warnings.warn(&#34;No dataframe provided, column argument will be ignored.&#34;)
+
+        # input data provided as dataframe
+        if df is not None:
+            self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
+            self.y = df[column].tolist()
+
         self.y_de_trended: Optional[list] = None
-        self.config = config
+
         self.segments: Optional[list[Segment]] = None
-        self.x: Optional[list[int]] = x
-        self.y: Optional[list[float]] = y
         self.slope: Optional[float] = None
         self.offset: Optional[float] = None
         self.slopes_std: Optional[float] = None
@@ -195,6 +204,10 @@ class Segmenter:
             )
         )
         self.segments = segments
+
+        # add extra information to the segments
+        self._describe_segments()
+
         return segments
 
     @staticmethod
@@ -206,7 +219,7 @@ class Segmenter:
             reason = &#34;slope and offset&#34;
         return reason
 
-    def describe_segments(self) -&gt; None:
+    def _describe_segments(self) -&gt; None:
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -253,7 +266,7 @@ class Segmenter:
         self,
         idx: Union[list[int], int],
         col: str = &#34;red&#34;,
-        fig_size: tuple[float] = (10, 5),
+        fig_size: FigSize = (10, 5),
     ) -&gt; None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
@@ -270,9 +283,12 @@ class Segmenter:
             plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
             plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
             plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
+            # add x- and y-axis labels
+            plt.xlabel(&#34;time&#34;, fontsize=14)
+            plt.ylabel(&#34;value&#34;, fontsize=14)
         plt.show()
 
-    def plot_segments(self, fig_size: tuple[float] = (10, 5)) -&gt; None:
+    def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         for segment in self.segments:
@@ -305,11 +321,17 @@ class Segmenter:
                 linestyle=&#34;--&#34;,
                 linewidth=3,
             )
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;value&#34;, fontsize=14)
         plt.show()
 
-    def plot_detrended_signal(self, fig_size=(10, 5)) -&gt; None:
+    def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
         plt.show()
 
     def calc_area_outside_trend(self) -&gt; float:
@@ -412,123 +434,9 @@ class <code>Metrics</code></p></div>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="trend_classifier.segmentation.Segment"><code class="flex name class">
-<span>class <span class="ident">Segment</span></span>
-<span>(</span><span>**data: Any)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Segment of a time series.</p>
-<h2 id="attributes">Attributes</h2>
-<p>self.start: Start index of the segment.
-self.stop: End index of the segment.
-self.slope: Slope of the segment.
-self.offset: Offset of the segment.
-self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-self.slopes: List of slopes of the micro-segments.
-self.offsets: Offsets of the micro-segments.
-self.slopes_std: Standard deviation of the slopes.
-self.offsets_std: Standard deviation of the offsets.
-self.span: span of the values in the segment normalized by the mean value of the
-segment. Indicator if the volatility of the segment is high or low.
-Create a new model by parsing and validating input data from keyword arguments.</p>
-<p>Raises ValidationError if the input data cannot be parsed to form a valid model.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class Segment(BaseModel):
-    &#34;&#34;&#34;Segment of a time series.
-
-    Attributes:
-        self.start: Start index of the segment.
-        self.stop: End index of the segment.
-        self.slope: Slope of the segment.
-        self.offset: Offset of the segment.
-        self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-        self.slopes: List of slopes of the micro-segments.
-        self.offsets: Offsets of the micro-segments.
-        self.slopes_std: Standard deviation of the slopes.
-        self.offsets_std: Standard deviation of the offsets.
-        self.span: span of the values in the segment normalized by the mean value of the
-                            segment. Indicator if the volatility of the segment is high or low.
-    &#34;&#34;&#34;
-
-    start: int
-    stop: int
-    slopes: list[float]
-    offsets: list[float]
-    slopes_std: Optional[float] = None
-    offsets_std: Optional[float] = None
-    slope: Optional[float] = None
-    offset: Optional[float] = None
-    std: Optional[float] = None
-    span: Optional[float] = None
-    reason_for_new_segment: Optional[str] = None
-
-    def __str__(self):
-        return f&#34;Segment({self.start}, {self.stop}, {self.slope:.4g})&#34;
-
-    def __repr__(self):
-        # FIXME: KS: 2022-09-06: repr should be unambiguous, i.e. it should be possible to
-        #  reconstruct the object from the repr. This is not the case here.
-        return str(self)</code></pre>
-</details>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>pydantic.main.BaseModel</li>
-<li>pydantic.utils.Representation</li>
-</ul>
-<h3>Class variables</h3>
-<dl>
-<dt id="trend_classifier.segmentation.Segment.offset"><code class="name">var <span class="ident">offset</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.offsets"><code class="name">var <span class="ident">offsets</span> : list[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.offsets_std"><code class="name">var <span class="ident">offsets_std</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.reason_for_new_segment"><code class="name">var <span class="ident">reason_for_new_segment</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.slope"><code class="name">var <span class="ident">slope</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.slopes"><code class="name">var <span class="ident">slopes</span> : list[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.slopes_std"><code class="name">var <span class="ident">slopes_std</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.span"><code class="name">var <span class="ident">span</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.start"><code class="name">var <span class="ident">start</span> : int</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.std"><code class="name">var <span class="ident">std</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="trend_classifier.segmentation.Segment.stop"><code class="name">var <span class="ident">stop</span> : int</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-</dl>
-</dd>
 <dt id="trend_classifier.segmentation.Segmenter"><code class="flex name class">
 <span>class <span class="ident">Segmenter</span></span>
-<span>(</span><span>config: <a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a>, x: Optional[list[int]] = None, y: Optional[list[int]] = None)</span>
+<span>(</span><span>x: Optional[list[int]] = None, y: Optional[list[int]] = None, df=None, column: Optional[str] = 'Adj Close', config: Optional[<a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a>] = None, n: Optional[int] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -539,15 +447,60 @@ Create a new model by parsing and validating input data from keyword arguments.<
 <pre><code class="python">class Segmenter:
     def __init__(
         self,
-        config: Config,
         x: Optional[list[int]] = None,
         y: Optional[list[int]] = None,
+        df=None,
+        column: Optional[str] = &#34;Adj Close&#34;,
+        config: Optional[Config] = None,
+        n: Optional[int] = None,
     ):
+
+        # Handle configuration
+        if config is None:
+            # use default configuration if no configuration is provided
+            self.config = Config()
+            if n is not None:
+                # override default N in configuration if N is provided
+                self.config.N = n
+        if config is not None and n is not None:
+            # raise error
+            raise ValueError(&#34;Provide either config or N, not both.&#34;)
+
+        # --- Handle input data
+        # error - most likely pandas dataframe as argument instead of kwarg
+        if x is not None and not isinstance(x, list):
+            # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
+            raise TypeError(
+                &#34;x must be a list, got {}. For pandas dataframe use &#39;df&#39; keyword argument&#34;.format(
+                    type(x)
+                )
+            )
+        # error - no input data provided
+        if x is None and y is None and df is None:
+            raise ValueError(&#34;Provide timeseries data: either x and y or df.&#34;)
+
+        # error - ambiguous input data provided - both x,y and df provided
+        if x is not None and y is not None and df is not None:
+            raise ValueError(
+                &#34;Provide timeseries data: either (x and y) or (df), not all.&#34;
+            )
+        # input data provided as x and y
+        if x is not None and y is not None:
+            self.x = x
+            self.y = y
+
+        # make warning if column provided but not dataframe
+        if df is None and column is not None:
+            warnings.warn(&#34;No dataframe provided, column argument will be ignored.&#34;)
+
+        # input data provided as dataframe
+        if df is not None:
+            self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
+            self.y = df[column].tolist()
+
         self.y_de_trended: Optional[list] = None
-        self.config = config
+
         self.segments: Optional[list[Segment]] = None
-        self.x: Optional[list[int]] = x
-        self.y: Optional[list[float]] = y
         self.slope: Optional[float] = None
         self.offset: Optional[float] = None
         self.slopes_std: Optional[float] = None
@@ -634,6 +587,10 @@ Create a new model by parsing and validating input data from keyword arguments.<
             )
         )
         self.segments = segments
+
+        # add extra information to the segments
+        self._describe_segments()
+
         return segments
 
     @staticmethod
@@ -645,7 +602,7 @@ Create a new model by parsing and validating input data from keyword arguments.<
             reason = &#34;slope and offset&#34;
         return reason
 
-    def describe_segments(self) -&gt; None:
+    def _describe_segments(self) -&gt; None:
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -692,7 +649,7 @@ Create a new model by parsing and validating input data from keyword arguments.<
         self,
         idx: Union[list[int], int],
         col: str = &#34;red&#34;,
-        fig_size: tuple[float] = (10, 5),
+        fig_size: FigSize = (10, 5),
     ) -&gt; None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
@@ -709,9 +666,12 @@ Create a new model by parsing and validating input data from keyword arguments.<
             plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
             plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
             plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
+            # add x- and y-axis labels
+            plt.xlabel(&#34;time&#34;, fontsize=14)
+            plt.ylabel(&#34;value&#34;, fontsize=14)
         plt.show()
 
-    def plot_segments(self, fig_size: tuple[float] = (10, 5)) -&gt; None:
+    def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         for segment in self.segments:
@@ -744,11 +704,17 @@ Create a new model by parsing and validating input data from keyword arguments.<
                 linestyle=&#34;--&#34;,
                 linewidth=3,
             )
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;value&#34;, fontsize=14)
         plt.show()
 
-    def plot_detrended_signal(self, fig_size=(10, 5)) -&gt; None:
+    def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
         plt.show()
 
     def calc_area_outside_trend(self) -&gt; float:
@@ -807,7 +773,7 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.calculate_segments"><code class="name flex">
-<span>def <span class="ident">calculate_segments</span></span>(<span>self) ‑> list[<a title="trend_classifier.segmentation.Segment" href="#trend_classifier.segmentation.Segment">Segment</a>]</span>
+<span>def <span class="ident">calculate_segments</span></span>(<span>self) ‑> list[<a title="trend_classifier.segment.Segment" href="segment.html#trend_classifier.segment.Segment">Segment</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Calculate segments with similar trend for the given timeserie.</p>
@@ -899,64 +865,15 @@ Normalized by the length of the signal.</p></div>
         )
     )
     self.segments = segments
+
+    # add extra information to the segments
+    self._describe_segments()
+
     return segments</code></pre>
 </details>
 </dd>
-<dt id="trend_classifier.segmentation.Segmenter.describe_segments"><code class="name flex">
-<span>def <span class="ident">describe_segments</span></span>(<span>self) ‑> None</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def describe_segments(self) -&gt; None:
-    y_norm = []
-    for idx, segment in enumerate(self.segments):
-        start = segment.start
-        stop = segment.stop
-
-        # x and y for the segment
-        xx = self.x[start : stop + 1]
-        yy = self.y[start : stop + 1]
-
-        # trend calculation
-        fit = np.polyfit(x=xx, y=yy, deg=1)
-        fit_fn = np.poly1d(fit)
-
-        # calculate point for the trend line
-        yt = np.array(fit_fn(xx))
-
-        # FIXME: KS: 2022-09-02: Normalize (as below?)
-        # normalize each point in yy by value of corresponding point in yt,
-        # store results in ydtn
-        # ydtn = yy / yt
-
-        ydt = np.array(yy) - yt
-
-        # calculate standard deviation of the values with removed trend
-        s = np.std(ydt)
-
-        # calculate span of the values in the segment normalized by
-        # the mean value of the segment
-        span = 1000 * (np.max(ydt) - np.min(ydt)) // np.mean(yy)
-
-        # store de-trended values
-        y_norm.extend(ydt)
-
-        # store volatility measures for the segment
-        self.segments[idx].std = s
-        self.segments[idx].span = span
-        self.y_de_trended = y_norm
-        self.segments[idx].slope = fit[0]
-        self.segments[idx].offset = fit[1]
-        self.segments[idx].slopes_std = np.std(self.segments[idx].slopes)
-        self.segments[idx].offsets_std = np.std(self.segments[idx].offsets)</code></pre>
-</details>
-</dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_detrended_signal"><code class="name flex">
-<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size=(10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -964,14 +881,17 @@ Normalized by the length of the signal.</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def plot_detrended_signal(self, fig_size=(10, 5)) -&gt; None:
+<pre><code class="python">def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
+    # add x- and y-axis labels
+    plt.xlabel(&#34;time&#34;, fontsize=14)
+    plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
     plt.show()</code></pre>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_segment"><code class="name flex">
-<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: Union[list[int], int], col: str = 'red', fig_size: tuple[float] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: Union[list[int], int], col: str = 'red', fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -983,7 +903,7 @@ Normalized by the length of the signal.</p></div>
     self,
     idx: Union[list[int], int],
     col: str = &#34;red&#34;,
-    fig_size: tuple[float] = (10, 5),
+    fig_size: FigSize = (10, 5),
 ) -&gt; None:
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
@@ -1000,11 +920,14 @@ Normalized by the length of the signal.</p></div>
         plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
         plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
         plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;value&#34;, fontsize=14)
     plt.show()</code></pre>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_segments"><code class="name flex">
-<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: tuple[float] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1012,7 +935,7 @@ Normalized by the length of the signal.</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def plot_segments(self, fig_size: tuple[float] = (10, 5)) -&gt; None:
+<pre><code class="python">def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
     for segment in self.segments:
@@ -1045,6 +968,9 @@ Normalized by the length of the signal.</p></div>
             linestyle=&#34;--&#34;,
             linewidth=3,
         )
+    # add x- and y-axis labels
+    plt.xlabel(&#34;time&#34;, fontsize=14)
+    plt.ylabel(&#34;value&#34;, fontsize=14)
     plt.show()</code></pre>
 </details>
 </dd>
@@ -1073,28 +999,11 @@ Normalized by the length of the signal.</p></div>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="trend_classifier.segmentation.Segment" href="#trend_classifier.segmentation.Segment">Segment</a></code></h4>
-<ul class="">
-<li><code><a title="trend_classifier.segmentation.Segment.offset" href="#trend_classifier.segmentation.Segment.offset">offset</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.offsets" href="#trend_classifier.segmentation.Segment.offsets">offsets</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.offsets_std" href="#trend_classifier.segmentation.Segment.offsets_std">offsets_std</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.reason_for_new_segment" href="#trend_classifier.segmentation.Segment.reason_for_new_segment">reason_for_new_segment</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.slope" href="#trend_classifier.segmentation.Segment.slope">slope</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.slopes" href="#trend_classifier.segmentation.Segment.slopes">slopes</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.slopes_std" href="#trend_classifier.segmentation.Segment.slopes_std">slopes_std</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.span" href="#trend_classifier.segmentation.Segment.span">span</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.start" href="#trend_classifier.segmentation.Segment.start">start</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.std" href="#trend_classifier.segmentation.Segment.std">std</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segment.stop" href="#trend_classifier.segmentation.Segment.stop">stop</a></code></li>
-</ul>
-</li>
-<li>
 <h4><code><a title="trend_classifier.segmentation.Segmenter" href="#trend_classifier.segmentation.Segmenter">Segmenter</a></code></h4>
 <ul class="">
 <li><code><a title="trend_classifier.segmentation.Segmenter.calc_area_outside_trend" href="#trend_classifier.segmentation.Segmenter.calc_area_outside_trend">calc_area_outside_trend</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.calculate_segments" href="#trend_classifier.segmentation.Segmenter.calculate_segments">calculate_segments</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.describe_reason_for_new_segment" href="#trend_classifier.segmentation.Segmenter.describe_reason_for_new_segment">describe_reason_for_new_segment</a></code></li>
-<li><code><a title="trend_classifier.segmentation.Segmenter.describe_segments" href="#trend_classifier.segmentation.Segmenter.describe_segments">describe_segments</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.plot_detrended_signal" href="#trend_classifier.segmentation.Segmenter.plot_detrended_signal">plot_detrended_signal</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.plot_segment" href="#trend_classifier.segmentation.Segmenter.plot_segment">plot_segment</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.plot_segments" href="#trend_classifier.segmentation.Segmenter.plot_segments">plot_segments</a></code></li>
