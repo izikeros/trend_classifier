@@ -1,0 +1,69 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+# Use: `pre-commit autoupdate` to update the hooks
+
+
+repos:
+  # Remove trailing whitespace
+  # Ensure that all files end with a newline
+  # Harmonize line endings
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: check-added-large-files   # prevents giant files from being committed.
+      - id: check-case-conflict       # checks for files that would conflict in case-insensitive filesystems.
+      - id: check-merge-conflict      # checks for files that contain merge conflict strings.
+      - id: trailing-whitespace       # trims trailing whitespace.
+      - id: check-yaml                # checks yaml files for parseable syntax.
+      - id: check-toml                # checks toml files for parseable syntax.
+      - id: end-of-file-fixer         # ensures that a file is either empty, or ends with one newline.
+      - id: mixed-line-ending         # replaces or checks mixed line ending.
+      - id: detect-private-key        # detects the presence of private keys.
+      - id: fix-byte-order-marker     # removes utf-8 byte order marker.
+      - id: check-executables-have-shebangs      # ensures that (non-binary) executables have a shebang.
+      # - id: check-shebang-scripts-are-executable # ensures that (non-binary) files with a shebang are executable.(raises false positives on macOS)
+
+  #  A formatter for finding and removing unused import statements.
+  - repo: https://github.com/hadialqattan/pycln
+    rev: v1.2.5
+    hooks:
+      - id: pycln
+        args: [ --all ]
+
+  # Import order and formatting
+  #   If used jointly with flake8-import-order, ensure that flake8 import order
+  #   is set to the same style that is enforced by zimports.
+  #   E.g. add `import-order-style = google` to your .flake8 file.
+  - repo: https://github.com/sqlalchemyorg/zimports/
+    rev: v0.5.0
+    hooks:
+      - id: zimports
+        args: [ --style=pycharm ]
+
+  # The uncompromising code formatter
+  - repo: https://github.com/psf/black
+    rev: 22.1.0
+    hooks:
+      - id: black
+
+  # A tool to automatically upgrade syntax for newer versions of the python language.
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.1
+    hooks:
+      - id: pyupgrade
+        args: [ --py36-plus ]
+
+  # A tool to automatically fix common style issues in Python code. Has plugins.
+  - repo: https://github.com/pycqa/flake8
+    rev: '4.0.1'
+    hooks:
+      - id: flake8
+        exclude: (__pycache__|.venv|tmp|.tox)
+        additional_dependencies: [ flake8-import-order, flake8-keyword-arguments ]
+
+  # Find common security issues in your Python code using bandit.
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
+    rev: v1.0.5
+    hooks:
+      - id: python-bandit-vulnerability-check
+        args: [ -r, --ini, .bandit ]
