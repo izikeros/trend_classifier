@@ -46,12 +46,12 @@ repos:
     hooks:
       - id: black
 
-  # A tool to automatically upgrade syntax for newer versions of the python language.
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.3
-    hooks:
-      - id: pyupgrade
-        args: [ --py39-plus ]
+#  # A tool to automatically upgrade syntax for newer versions of the python language.
+#  - repo: https://github.com/asottile/pyupgrade
+#    rev: v2.37.3
+#    hooks:
+#      - id: pyupgrade
+#        args: [ --py39-plus ]
 
   # A tool to automatically fix common style issues in Python code. Has plugins.
   - repo: https://github.com/pycqa/flake8
