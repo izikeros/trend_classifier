@@ -26,8 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from typing import List
-from typing import Optional
+<pre><code class="python">from typing import Optional
 from typing import Union
 
 import numpy as np
@@ -115,7 +114,7 @@ class Segmenter:
         self.slopes_std: Optional[float] = None
         self.offsets_std: Optional[float] = None
 
-    def calculate_segments(self) -&gt; List[Segment]:
+    def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -146,7 +145,7 @@ class Segmenter:
             print(&#34;N = &#34;, N)
             print(&#34;overlap_ratio = &#34;, overlap_ratio)
             off = 1
-        for start in range(start=0, stop=len(self.x) - N, step=off):
+        for start in range(0, len(self.x) - N, off):  # noqa: FKA01
             fit = np.polyfit(
                 x=self.x[start : start + N], y=self.y[start : start + N], deg=1
             )
@@ -554,7 +553,7 @@ Create a new model by parsing and validating input data from keyword arguments.<
         self.slopes_std: Optional[float] = None
         self.offsets_std: Optional[float] = None
 
-    def calculate_segments(self) -&gt; List[Segment]:
+    def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -585,7 +584,7 @@ Create a new model by parsing and validating input data from keyword arguments.<
             print(&#34;N = &#34;, N)
             print(&#34;overlap_ratio = &#34;, overlap_ratio)
             off = 1
-        for start in range(start=0, stop=len(self.x) - N, step=off):
+        for start in range(0, len(self.x) - N, off):  # noqa: FKA01
             fit = np.polyfit(
                 x=self.x[start : start + N], y=self.y[start : start + N], deg=1
             )
@@ -808,7 +807,7 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.calculate_segments"><code class="name flex">
-<span>def <span class="ident">calculate_segments</span></span>(<span>self) ‑> List[<a title="trend_classifier.segmentation.Segment" href="#trend_classifier.segmentation.Segment">Segment</a>]</span>
+<span>def <span class="ident">calculate_segments</span></span>(<span>self) ‑> list[<a title="trend_classifier.segmentation.Segment" href="#trend_classifier.segmentation.Segment">Segment</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Calculate segments with similar trend for the given timeserie.</p>
@@ -819,7 +818,7 @@ Normalized by the length of the signal.</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def calculate_segments(self) -&gt; List[Segment]:
+<pre><code class="python">def calculate_segments(self) -&gt; list[Segment]:
     &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
 
     Calculates:
@@ -850,7 +849,7 @@ Normalized by the length of the signal.</p></div>
         print(&#34;N = &#34;, N)
         print(&#34;overlap_ratio = &#34;, overlap_ratio)
         off = 1
-    for start in range(start=0, stop=len(self.x) - N, step=off):
+    for start in range(0, len(self.x) - N, off):  # noqa: FKA01
         fit = np.polyfit(
             x=self.x[start : start + N], y=self.y[start : start + N], deg=1
         )
