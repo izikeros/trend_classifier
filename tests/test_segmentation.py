@@ -32,3 +32,11 @@ class TestCalculateSegments:
         self.seg.y = list(range(200, 0, -1))
         segments = self.seg.calculate_segments()
         assert len(segments) == 1
+
+    @pytest.mark.skip(reason="Not implemented yet")
+    def test_calculate_segments__segments_not_overlap(self):
+        """Check if segments are not overlapping."""
+        # TODO: KS: 2022-09-07: Consider what is the better option:
+        #  - to have segments not overlapping
+        #  - to have segments overlapping?
+        assert True
