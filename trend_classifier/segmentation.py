@@ -1,4 +1,3 @@
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -87,7 +86,7 @@ class Segmenter:
         self.slopes_std: Optional[float] = None
         self.offsets_std: Optional[float] = None
 
-    def calculate_segments(self) -> List[Segment]:
+    def calculate_segments(self) -> list[Segment]:
         """Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -118,7 +117,7 @@ class Segmenter:
             print("N = ", N)
             print("overlap_ratio = ", overlap_ratio)
             off = 1
-        for start in range(start=0, stop=len(self.x) - N, step=off):
+        for start in range(0, len(self.x) - N, off):  # noqa: FKA01
             fit = np.polyfit(
                 x=self.x[start : start + N], y=self.y[start : start + N], deg=1
             )
