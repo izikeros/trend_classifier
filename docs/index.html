@@ -43,19 +43,15 @@ __all__ = [&#34;Segmenter&#34;, &#34;Segment&#34;, &#34;Config&#34;, &#34;CONFIG
 <dl>
 <dt><code class="name"><a title="trend_classifier.configuration" href="configuration.html">trend_classifier.configuration</a></code></dt>
 <dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="trend_classifier.metrics" href="metrics.html">trend_classifier.metrics</a></code></dt>
-<dd>
-<div class="desc"></div>
+<div class="desc"><p>Module with configuration class for Segmenter and sample configurations.</p></div>
 </dd>
 <dt><code class="name"><a title="trend_classifier.models" href="models.html">trend_classifier.models</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Module with pydantic models and classes for Enum types.</p></div>
 </dd>
 <dt><code class="name"><a title="trend_classifier.segment" href="segment.html">trend_classifier.segment</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Module with pydantic model of Segment and helper datastructure - SegmentList.</p></div>
 </dd>
 <dt><code class="name"><a title="trend_classifier.segmentation" href="segmentation.html">trend_classifier.segmentation</a></code></dt>
 <dd>
@@ -79,13 +75,16 @@ __all__ = [&#34;Segmenter&#34;, &#34;Segment&#34;, &#34;Config&#34;, &#34;CONFIG
 <span>(</span><span>**data: Any)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a new model by parsing and validating input data from keyword arguments.</p>
+<div class="desc"><p>Configuration of the Segmenter.</p>
+<p>Create a new model by parsing and validating input data from keyword arguments.</p>
 <p>Raises ValidationError if the input data cannot be parsed to form a valid model.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Config(BaseModel):
+    &#34;&#34;&#34;Configuration of the Segmenter.&#34;&#34;&#34;
+
     N: int = 60
     overlap_ratio: float = 0.33
 
@@ -135,52 +134,50 @@ __all__ = [&#34;Segmenter&#34;, &#34;Segment&#34;, &#34;Config&#34;, &#34;CONFIG
 </code></dt>
 <dd>
 <div class="desc"><p>Segment of a time series.</p>
-<h2 id="attributes">Attributes</h2>
-<p>self.start: Start index of the segment.
-self.stop: End index of the segment.
-self.slope: Slope of the segment.
-self.offset: Offset of the segment.
-self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-self.slopes: List of slopes of the micro-segments.
-self.offsets: Offsets of the micro-segments.
-self.slopes_std: Standard deviation of the slopes.
-self.offsets_std: Standard deviation of the offsets.
-self.span: span of the values in the segment normalized by the mean value of the
-segment. Indicator if the volatility of the segment is high or low.
-Create a new model by parsing and validating input data from keyword arguments.</p>
+<p>Create a new model by parsing and validating input data from keyword arguments.</p>
 <p>Raises ValidationError if the input data cannot be parsed to form a valid model.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Segment(BaseModel):
-    &#34;&#34;&#34;Segment of a time series.
+    &#34;&#34;&#34;Segment of a time series.&#34;&#34;&#34;
 
-    Attributes:
-        self.start: Start index of the segment.
-        self.stop: End index of the segment.
-        self.slope: Slope of the segment.
-        self.offset: Offset of the segment.
-        self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-        self.slopes: List of slopes of the micro-segments.
-        self.offsets: Offsets of the micro-segments.
-        self.slopes_std: Standard deviation of the slopes.
-        self.offsets_std: Standard deviation of the offsets.
-        self.span: span of the values in the segment normalized by the mean value of the
-                            segment. Indicator if the volatility of the segment is high or low.
-    &#34;&#34;&#34;
-
+    # ---- mandatory attributes
     start: int
+    &#34;&#34;&#34;Start index of the segment.&#34;&#34;&#34;
+
     stop: int
+    &#34;&#34;&#34;Stop index of the segment.&#34;&#34;&#34;
+
+    slopes: list[float] = []
+    &#34;&#34;&#34;List of slopes of linear trends in windows in the segment.&#34;&#34;&#34;
+
+    offsets: list[float] = []
+    &#34;&#34;&#34;List of offsets of linear trends in windows in the segment.&#34;&#34;&#34;
+
+    # --- optional attributes with default values
     slope: float = 0
+    &#34;&#34;&#34;Slope of the segment.&#34;&#34;&#34;
+
     offset: float = 0
-    slopes: list[float]
-    offsets: list[float]
+    &#34;&#34;&#34;Offset of the segments.&#34;&#34;&#34;
+
     slopes_std: float = 0
+    &#34;&#34;&#34;Standard deviation of the slopes of linear trends in windows in the segment.&#34;&#34;&#34;
+
     offsets_std: float = 0
+    &#34;&#34;&#34;Standard deviation of the offsets of linear trends in windows in the segment.&#34;&#34;&#34;
+
     std: float = 0
+    &#34;&#34;&#34;Standard deviation of the samples in the segment with removed trend.&#34;&#34;&#34;
+
     span: float = 0
+    &#34;&#34;&#34;Span of the values in the segment normalized by the mean value of the segment.
+    Indicator if the volatility of the segment is high or low.&#34;&#34;&#34;
+
     reason_for_new_segment: str = &#34;&#34;
+    &#34;&#34;&#34;Reason for creating a new segment (which criterion was violated).&#34;&#34;&#34;
 
     def __str__(self):
         return f&#34;Segment(start={self.start}, stop={self.stop}, slope={self.slope:.4g})&#34;
@@ -203,70 +200,99 @@ Create a new model by parsing and validating input data from keyword arguments.<
 <dl>
 <dt id="trend_classifier.Segment.offset"><code class="name">var <span class="ident">offset</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Offset of the segments.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.offsets"><code class="name">var <span class="ident">offsets</span> : list[float]</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>List of offsets of linear trends in windows in the segment.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.offsets_std"><code class="name">var <span class="ident">offsets_std</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Standard deviation of the offsets of linear trends in windows in the segment.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.reason_for_new_segment"><code class="name">var <span class="ident">reason_for_new_segment</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Reason for creating a new segment (which criterion was violated).</p></div>
 </dd>
 <dt id="trend_classifier.Segment.slope"><code class="name">var <span class="ident">slope</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Slope of the segment.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.slopes"><code class="name">var <span class="ident">slopes</span> : list[float]</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>List of slopes of linear trends in windows in the segment.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.slopes_std"><code class="name">var <span class="ident">slopes_std</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Standard deviation of the slopes of linear trends in windows in the segment.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.span"><code class="name">var <span class="ident">span</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Span of the values in the segment normalized by the mean value of the segment.
+Indicator if the volatility of the segment is high or low.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.start"><code class="name">var <span class="ident">start</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Start index of the segment.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.std"><code class="name">var <span class="ident">std</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Standard deviation of the samples in the segment with removed trend.</p></div>
 </dd>
 <dt id="trend_classifier.Segment.stop"><code class="name">var <span class="ident">stop</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Stop index of the segment.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="trend_classifier.Segmenter"><code class="flex name class">
 <span>class <span class="ident">Segmenter</span></span>
-<span>(</span><span>x: Optional[list[int]] = None, y: Optional[list[int]] = None, df=None, column: Optional[str] = 'Adj Close', config: Optional[<a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a>] = None, n: Optional[int] = None)</span>
+<span>(</span><span>x: list[int] | None = None, y: list[int] | None = None, df=None, column: str | None = 'Adj Close', config: <a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a> | None = None, n: int | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Class for segmenting a time series into segments with similar trend.</p>
+<p>Initialize the segmenter.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>x</code></strong></dt>
+<dd>List of x values.</dd>
+<dt><strong><code>y</code></strong></dt>
+<dd>List of y values.</dd>
+<dt><strong><code>df</code></strong></dt>
+<dd>Pandas DataFrame with time series.</dd>
+<dt><strong><code>column</code></strong></dt>
+<dd>Name of the column with the time series.</dd>
+<dt><strong><code>config</code></strong></dt>
+<dd>Configuration of the segmenter.</dd>
+<dt><strong><code>n</code></strong></dt>
+<dd>Number of samples in a window.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Segmenter:
+    &#34;&#34;&#34;Class for segmenting a time series into segments with similar trend.&#34;&#34;&#34;
+
     def __init__(
         self,
-        x: Optional[list[int]] = None,
-        y: Optional[list[int]] = None,
+        x: list[int] | None = None,
+        y: list[int] | None = None,
         df=None,
-        column: Optional[str] = &#34;Adj Close&#34;,
-        config: Optional[Config] = None,
-        n: Optional[int] = None,
+        column: str | None = &#34;Adj Close&#34;,
+        config: Config | None = None,
+        n: int | None = None,
     ):
+        &#34;&#34;&#34;Initialize the segmenter.
+
+        Args:
+            x: List of x values.
+            y: List of y values.
+            df: Pandas DataFrame with time series.
+            column: Name of the column with the time series.
+            config: Configuration of the segmenter.
+            n: Number of samples in a window.
+        &#34;&#34;&#34;
 
         # Handle configuration
         if config is None:
@@ -311,20 +337,20 @@ Create a new model by parsing and validating input data from keyword arguments.<
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
 
-        self.y_de_trended: Optional[list] = None
+        self.y_de_trended: list | None = None
 
-        self.segments: Optional[Segments[Segment]] = None
-        self.slope: Optional[float] = None
-        self.offset: Optional[float] = None
-        self.slopes_std: Optional[float] = None
-        self.offsets_std: Optional[float] = None
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
     def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
 
         Calculates:
          - boundaries of segments
-        - slopes and offsets of micro-segments
+        - slopes and offsets of windows
 
         &#34;&#34;&#34;
         # check if initialized x and y
@@ -340,7 +366,7 @@ Create a new model by parsing and validating input data from keyword arguments.<
 
         prev_fit = None
 
-        segments = Segments()
+        segments = SegmentList()
         s_start = 0
         slopes = []
         offsets = []
@@ -416,6 +442,7 @@ Create a new model by parsing and validating input data from keyword arguments.<
         return reason
 
     def _describe_segments(self) -&gt; None:
+        &#34;&#34;&#34;Add extra information about the segments.&#34;&#34;&#34;
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -460,10 +487,17 @@ Create a new model by parsing and validating input data from keyword arguments.<
 
     def plot_segment(
         self,
-        idx: Union[list[int], int],
+        idx: list[int] | int,
         col: str = &#34;red&#34;,
         fig_size: FigSize = (10, 5),
     ) -&gt; None:
+        &#34;&#34;&#34;Plot segment with given index or multiple segments with given indices.
+
+        Args:
+            idx: index of the segment or list of indices of segments
+            col: color of the segment
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         if isinstance(idx, int):
@@ -485,6 +519,11 @@ Create a new model by parsing and validating input data from keyword arguments.<
         plt.show()
 
     def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        &#34;&#34;&#34;Plot all segments and linear trend lines.
+
+        Args:
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         for segment in self.segments:
@@ -523,6 +562,11 @@ Create a new model by parsing and validating input data from keyword arguments.<
         plt.show()
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        &#34;&#34;&#34;Plot de-trended signal.
+
+        Args:
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
         # add x- and y-axis labels
@@ -536,6 +580,10 @@ Create a new model by parsing and validating input data from keyword arguments.<
         Sum of absolute values of the points below/above the trend line.
         Normalized by the mean value of the signal.
         Normalized by the length of the signal.
+
+        Returns:
+            area outside trend
+
         &#34;&#34;&#34;
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)</code></pre>
 </details>
@@ -570,7 +618,9 @@ def describe_reason_for_new_segment(
 <div class="desc"><p>Calculate area outside trend.</p>
 <p>Sum of absolute values of the points below/above the trend line.
 Normalized by the mean value of the signal.
-Normalized by the length of the signal.</p></div>
+Normalized by the length of the signal.</p>
+<h2 id="returns">Returns</h2>
+<p>area outside trend</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -581,6 +631,10 @@ Normalized by the length of the signal.</p></div>
     Sum of absolute values of the points below/above the trend line.
     Normalized by the mean value of the signal.
     Normalized by the length of the signal.
+
+    Returns:
+        area outside trend
+
     &#34;&#34;&#34;
     return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)</code></pre>
 </details>
@@ -592,7 +646,7 @@ Normalized by the length of the signal.</p></div>
 <div class="desc"><p>Calculate segments with similar trend for the given timeserie.</p>
 <p>Calculates:
 - boundaries of segments
-- slopes and offsets of micro-segments</p></div>
+- slopes and offsets of windows</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -602,7 +656,7 @@ Normalized by the length of the signal.</p></div>
 
     Calculates:
      - boundaries of segments
-    - slopes and offsets of micro-segments
+    - slopes and offsets of windows
 
     &#34;&#34;&#34;
     # check if initialized x and y
@@ -618,7 +672,7 @@ Normalized by the length of the signal.</p></div>
 
     prev_fit = None
 
-    segments = Segments()
+    segments = SegmentList()
     s_start = 0
     slopes = []
     offsets = []
@@ -686,15 +740,25 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.Segmenter.plot_detrended_signal"><code class="name flex">
-<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size: <a title="trend_classifier.tuple" href="#trend_classifier.tuple">tuple</a>[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Plot de-trended signal.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+    &#34;&#34;&#34;Plot de-trended signal.
+
+    Args:
+        fig_size: size of the figure
+    &#34;&#34;&#34;
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
     # add x- and y-axis labels
@@ -704,20 +768,36 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.Segmenter.plot_segment"><code class="name flex">
-<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: Union[list[int], int], col: str = 'red', fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: list[int] | int, col: str = 'red', fig_size: <a title="trend_classifier.tuple" href="#trend_classifier.tuple">tuple</a>[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Plot segment with given index or multiple segments with given indices.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>idx</code></strong></dt>
+<dd>index of the segment or list of indices of segments</dd>
+<dt><strong><code>col</code></strong></dt>
+<dd>color of the segment</dd>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def plot_segment(
     self,
-    idx: Union[list[int], int],
+    idx: list[int] | int,
     col: str = &#34;red&#34;,
     fig_size: FigSize = (10, 5),
 ) -&gt; None:
+    &#34;&#34;&#34;Plot segment with given index or multiple segments with given indices.
+
+    Args:
+        idx: index of the segment or list of indices of segments
+        col: color of the segment
+        fig_size: size of the figure
+    &#34;&#34;&#34;
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
     if isinstance(idx, int):
@@ -740,15 +820,25 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.Segmenter.plot_segments"><code class="name flex">
-<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: <a title="trend_classifier.tuple" href="#trend_classifier.tuple">tuple</a>[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Plot all segments and linear trend lines.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+    &#34;&#34;&#34;Plot all segments and linear trend lines.
+
+    Args:
+        fig_size: size of the figure
+    &#34;&#34;&#34;
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
     for segment in self.segments:
@@ -789,6 +879,36 @@ Normalized by the length of the signal.</p></div>
 </dd>
 </dl>
 </dd>
+<dt id="trend_classifier.tuple"><code class="flex name class">
+<span>class <span class="ident">FigSize</span></span>
+<span>(</span><span>iterable=(), /)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Built-in immutable sequence.</p>
+<p>If no argument is given, the constructor returns an empty tuple.
+If iterable is specified the tuple is initialized from iterable's items.</p>
+<p>If the argument is a tuple, the return value is the same object.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.tuple</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="trend_classifier.tuple.count"><code class="name flex">
+<span>def <span class="ident">count</span></span>(<span>self, value, /)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return number of occurrences of value.</p></div>
+</dd>
+<dt id="trend_classifier.tuple.index"><code class="name flex">
+<span>def <span class="ident">index</span></span>(<span>self, value, start=0, stop=9223372036854775807, /)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return first index of value.</p>
+<p>Raises ValueError if the value is not present.</p></div>
+</dd>
+</dl>
+</dd>
 </dl>
 </section>
 </article>
@@ -801,7 +921,6 @@ Normalized by the length of the signal.</p></div>
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
 <li><code><a title="trend_classifier.configuration" href="configuration.html">trend_classifier.configuration</a></code></li>
-<li><code><a title="trend_classifier.metrics" href="metrics.html">trend_classifier.metrics</a></code></li>
 <li><code><a title="trend_classifier.models" href="models.html">trend_classifier.models</a></code></li>
 <li><code><a title="trend_classifier.segment" href="segment.html">trend_classifier.segment</a></code></li>
 <li><code><a title="trend_classifier.segmentation" href="segmentation.html">trend_classifier.segmentation</a></code></li>
@@ -846,6 +965,13 @@ Normalized by the length of the signal.</p></div>
 <li><code><a title="trend_classifier.Segmenter.plot_detrended_signal" href="#trend_classifier.Segmenter.plot_detrended_signal">plot_detrended_signal</a></code></li>
 <li><code><a title="trend_classifier.Segmenter.plot_segment" href="#trend_classifier.Segmenter.plot_segment">plot_segment</a></code></li>
 <li><code><a title="trend_classifier.Segmenter.plot_segments" href="#trend_classifier.Segmenter.plot_segments">plot_segments</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="trend_classifier.tuple" href="#trend_classifier.tuple">tuple</a></code></h4>
+<ul class="">
+<li><code><a title="trend_classifier.tuple.count" href="#trend_classifier.tuple.count">count</a></code></li>
+<li><code><a title="trend_classifier.tuple.index" href="#trend_classifier.tuple.index">index</a></code></li>
 </ul>
 </li>
 </ul>

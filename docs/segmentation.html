@@ -27,22 +27,20 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import warnings
-from typing import Optional
-from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment
-from trend_classifier.segment import Segments
+from trend_classifier.segment import SegmentList
 from trend_classifier.types import FigSize
 
 
-def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
+def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -&gt; float:
     &#34;&#34;&#34;Calculate how much two parameters differ.
 
-    Used e.g. to calculate how much the slopes of two micro-segments differ.
+    Used e.g. to calculate how much the slopes of linear trends in two windows differ.
 
     Args:
         a: First parameter.
@@ -57,21 +55,33 @@ def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
 
     &#34;&#34;&#34;
     if metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        return np.abs(a - b) / a
+        return abs(a - b) / a
     if metrics == Metrics.ABSOLUTE_ERROR:
-        return np.abs(a - b)
+        return abs(a - b)
 
 
 class Segmenter:
+    &#34;&#34;&#34;Class for segmenting a time series into segments with similar trend.&#34;&#34;&#34;
+
     def __init__(
         self,
-        x: Optional[list[int]] = None,
-        y: Optional[list[int]] = None,
+        x: list[int] | None = None,
+        y: list[int] | None = None,
         df=None,
-        column: Optional[str] = &#34;Adj Close&#34;,
-        config: Optional[Config] = None,
-        n: Optional[int] = None,
+        column: str | None = &#34;Adj Close&#34;,
+        config: Config | None = None,
+        n: int | None = None,
     ):
+        &#34;&#34;&#34;Initialize the segmenter.
+
+        Args:
+            x: List of x values.
+            y: List of y values.
+            df: Pandas DataFrame with time series.
+            column: Name of the column with the time series.
+            config: Configuration of the segmenter.
+            n: Number of samples in a window.
+        &#34;&#34;&#34;
 
         # Handle configuration
         if config is None:
@@ -116,20 +126,20 @@ class Segmenter:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
 
-        self.y_de_trended: Optional[list] = None
+        self.y_de_trended: list | None = None
 
-        self.segments: Optional[Segments[Segment]] = None
-        self.slope: Optional[float] = None
-        self.offset: Optional[float] = None
-        self.slopes_std: Optional[float] = None
-        self.offsets_std: Optional[float] = None
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
     def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
 
         Calculates:
          - boundaries of segments
-        - slopes and offsets of micro-segments
+        - slopes and offsets of windows
 
         &#34;&#34;&#34;
         # check if initialized x and y
@@ -145,7 +155,7 @@ class Segmenter:
 
         prev_fit = None
 
-        segments = Segments()
+        segments = SegmentList()
         s_start = 0
         slopes = []
         offsets = []
@@ -221,6 +231,7 @@ class Segmenter:
         return reason
 
     def _describe_segments(self) -&gt; None:
+        &#34;&#34;&#34;Add extra information about the segments.&#34;&#34;&#34;
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -265,10 +276,17 @@ class Segmenter:
 
     def plot_segment(
         self,
-        idx: Union[list[int], int],
+        idx: list[int] | int,
         col: str = &#34;red&#34;,
         fig_size: FigSize = (10, 5),
     ) -&gt; None:
+        &#34;&#34;&#34;Plot segment with given index or multiple segments with given indices.
+
+        Args:
+            idx: index of the segment or list of indices of segments
+            col: color of the segment
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         if isinstance(idx, int):
@@ -290,6 +308,11 @@ class Segmenter:
         plt.show()
 
     def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        &#34;&#34;&#34;Plot all segments and linear trend lines.
+
+        Args:
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         for segment in self.segments:
@@ -328,6 +351,11 @@ class Segmenter:
         plt.show()
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        &#34;&#34;&#34;Plot de-trended signal.
+
+        Args:
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
         # add x- and y-axis labels
@@ -341,11 +369,21 @@ class Segmenter:
         Sum of absolute values of the points below/above the trend line.
         Normalized by the mean value of the signal.
         Normalized by the length of the signal.
+
+        Returns:
+            area outside trend
+
         &#34;&#34;&#34;
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)
 
 
 def _determine_trend_end_point(off: int, start: int) -&gt; int:
+    &#34;&#34;&#34;Determine end point of the trend.
+
+    Args:
+        off: offset of the window
+        start: start point of the trend
+    &#34;&#34;&#34;
     # TODO: KS: 2022-09-06: proper calculation of the end of the segment
     s_stop = start + off / 2
     return int(s_stop)
@@ -373,24 +411,52 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
 <dl>
 <dt id="trend_classifier.segmentation.Segmenter"><code class="flex name class">
 <span>class <span class="ident">Segmenter</span></span>
-<span>(</span><span>x: Optional[list[int]] = None, y: Optional[list[int]] = None, df=None, column: Optional[str] = 'Adj Close', config: Optional[<a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a>] = None, n: Optional[int] = None)</span>
+<span>(</span><span>x: list[int] | None = None, y: list[int] | None = None, df=None, column: str | None = 'Adj Close', config: <a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a> | None = None, n: int | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Class for segmenting a time series into segments with similar trend.</p>
+<p>Initialize the segmenter.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>x</code></strong></dt>
+<dd>List of x values.</dd>
+<dt><strong><code>y</code></strong></dt>
+<dd>List of y values.</dd>
+<dt><strong><code>df</code></strong></dt>
+<dd>Pandas DataFrame with time series.</dd>
+<dt><strong><code>column</code></strong></dt>
+<dd>Name of the column with the time series.</dd>
+<dt><strong><code>config</code></strong></dt>
+<dd>Configuration of the segmenter.</dd>
+<dt><strong><code>n</code></strong></dt>
+<dd>Number of samples in a window.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Segmenter:
+    &#34;&#34;&#34;Class for segmenting a time series into segments with similar trend.&#34;&#34;&#34;
+
     def __init__(
         self,
-        x: Optional[list[int]] = None,
-        y: Optional[list[int]] = None,
+        x: list[int] | None = None,
+        y: list[int] | None = None,
         df=None,
-        column: Optional[str] = &#34;Adj Close&#34;,
-        config: Optional[Config] = None,
-        n: Optional[int] = None,
+        column: str | None = &#34;Adj Close&#34;,
+        config: Config | None = None,
+        n: int | None = None,
     ):
+        &#34;&#34;&#34;Initialize the segmenter.
+
+        Args:
+            x: List of x values.
+            y: List of y values.
+            df: Pandas DataFrame with time series.
+            column: Name of the column with the time series.
+            config: Configuration of the segmenter.
+            n: Number of samples in a window.
+        &#34;&#34;&#34;
 
         # Handle configuration
         if config is None:
@@ -435,20 +501,20 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
 
-        self.y_de_trended: Optional[list] = None
+        self.y_de_trended: list | None = None
 
-        self.segments: Optional[Segments[Segment]] = None
-        self.slope: Optional[float] = None
-        self.offset: Optional[float] = None
-        self.slopes_std: Optional[float] = None
-        self.offsets_std: Optional[float] = None
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
     def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
 
         Calculates:
          - boundaries of segments
-        - slopes and offsets of micro-segments
+        - slopes and offsets of windows
 
         &#34;&#34;&#34;
         # check if initialized x and y
@@ -464,7 +530,7 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
 
         prev_fit = None
 
-        segments = Segments()
+        segments = SegmentList()
         s_start = 0
         slopes = []
         offsets = []
@@ -540,6 +606,7 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         return reason
 
     def _describe_segments(self) -&gt; None:
+        &#34;&#34;&#34;Add extra information about the segments.&#34;&#34;&#34;
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -584,10 +651,17 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
 
     def plot_segment(
         self,
-        idx: Union[list[int], int],
+        idx: list[int] | int,
         col: str = &#34;red&#34;,
         fig_size: FigSize = (10, 5),
     ) -&gt; None:
+        &#34;&#34;&#34;Plot segment with given index or multiple segments with given indices.
+
+        Args:
+            idx: index of the segment or list of indices of segments
+            col: color of the segment
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         if isinstance(idx, int):
@@ -609,6 +683,11 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         plt.show()
 
     def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        &#34;&#34;&#34;Plot all segments and linear trend lines.
+
+        Args:
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
         for segment in self.segments:
@@ -647,6 +726,11 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         plt.show()
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        &#34;&#34;&#34;Plot de-trended signal.
+
+        Args:
+            fig_size: size of the figure
+        &#34;&#34;&#34;
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
         # add x- and y-axis labels
@@ -660,6 +744,10 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         Sum of absolute values of the points below/above the trend line.
         Normalized by the mean value of the signal.
         Normalized by the length of the signal.
+
+        Returns:
+            area outside trend
+
         &#34;&#34;&#34;
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)</code></pre>
 </details>
@@ -694,7 +782,9 @@ def describe_reason_for_new_segment(
 <div class="desc"><p>Calculate area outside trend.</p>
 <p>Sum of absolute values of the points below/above the trend line.
 Normalized by the mean value of the signal.
-Normalized by the length of the signal.</p></div>
+Normalized by the length of the signal.</p>
+<h2 id="returns">Returns</h2>
+<p>area outside trend</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -705,6 +795,10 @@ Normalized by the length of the signal.</p></div>
     Sum of absolute values of the points below/above the trend line.
     Normalized by the mean value of the signal.
     Normalized by the length of the signal.
+
+    Returns:
+        area outside trend
+
     &#34;&#34;&#34;
     return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)</code></pre>
 </details>
@@ -716,7 +810,7 @@ Normalized by the length of the signal.</p></div>
 <div class="desc"><p>Calculate segments with similar trend for the given timeserie.</p>
 <p>Calculates:
 - boundaries of segments
-- slopes and offsets of micro-segments</p></div>
+- slopes and offsets of windows</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -726,7 +820,7 @@ Normalized by the length of the signal.</p></div>
 
     Calculates:
      - boundaries of segments
-    - slopes and offsets of micro-segments
+    - slopes and offsets of windows
 
     &#34;&#34;&#34;
     # check if initialized x and y
@@ -742,7 +836,7 @@ Normalized by the length of the signal.</p></div>
 
     prev_fit = None
 
-    segments = Segments()
+    segments = SegmentList()
     s_start = 0
     slopes = []
     offsets = []
@@ -810,15 +904,25 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_detrended_signal"><code class="name flex">
-<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size: tuple[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Plot de-trended signal.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+    &#34;&#34;&#34;Plot de-trended signal.
+
+    Args:
+        fig_size: size of the figure
+    &#34;&#34;&#34;
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
     # add x- and y-axis labels
@@ -828,20 +932,36 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_segment"><code class="name flex">
-<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: Union[list[int], int], col: str = 'red', fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: list[int] | int, col: str = 'red', fig_size: tuple[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Plot segment with given index or multiple segments with given indices.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>idx</code></strong></dt>
+<dd>index of the segment or list of indices of segments</dd>
+<dt><strong><code>col</code></strong></dt>
+<dd>color of the segment</dd>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def plot_segment(
     self,
-    idx: Union[list[int], int],
+    idx: list[int] | int,
     col: str = &#34;red&#34;,
     fig_size: FigSize = (10, 5),
 ) -&gt; None:
+    &#34;&#34;&#34;Plot segment with given index or multiple segments with given indices.
+
+    Args:
+        idx: index of the segment or list of indices of segments
+        col: color of the segment
+        fig_size: size of the figure
+    &#34;&#34;&#34;
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
     if isinstance(idx, int):
@@ -864,15 +984,25 @@ Normalized by the length of the signal.</p></div>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_segments"><code class="name flex">
-<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: tuple[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Plot all segments and linear trend lines.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+    &#34;&#34;&#34;Plot all segments and linear trend lines.
+
+    Args:
+        fig_size: size of the figure
+    &#34;&#34;&#34;
     plt.subplots(figsize=fig_size)
     plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
     for segment in self.segments:
