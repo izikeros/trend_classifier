@@ -6,4 +6,4 @@ from trend_classifier.segment import Segment
 from trend_classifier.segmentation import Segmenter
 from trend_classifier.types import FigSize
 
-__all__ = ["Segmenter", "Segment", "Config", "CONFIG_ABS", "CONFIG_REL", FigSize]
+__all__ = ["Segmenter", "Segment", "Config", "CONFIG_ABS", "CONFIG_REL", "FigSize"]
