@@ -1,6 +1,6 @@
-import pytest
+from unittest.mock import patch
 
-from trend_classifier.configuration import Config
+import pytest
 from trend_classifier.segmentation import Segmenter
 
 
@@ -44,3 +44,31 @@ class TestCalculateSegments:
         #  - to have segments not overlapping
         #  - to have segments overlapping?
         assert True
+
+    def test_calc_area_outside_trend(self):
+        x = list(range(0, 200))
+        y = list(range(0, 100)) + list(range(100, 0, -1))
+        self.seg = Segmenter(x=x, y=y)
+        self.seg.calculate_segments()
+        area_outside_trend = self.seg.calc_area_outside_trend()
+        assert area_outside_trend > 0
+
+
+class TestSegmenterPlotting:
+    def setup_class(self):
+        x = list(range(0, 200))
+        y = list(range(0, 100)) + list(range(100, 0, -1))
+        self.seg = Segmenter(x=x, y=y)
+        self.seg.calculate_segments()
+
+    @patch("matplotlib.pyplot.show")
+    def test_plot_segment(self, mock_show):
+        self.seg.plot_segment(0)
+
+    @patch("matplotlib.pyplot.show")
+    def test_plot_segments(self, mock_show):
+        self.seg.plot_segments()
+
+    @patch("matplotlib.pyplot.show")
+    def test_plot_detrended_signal(self, mock_show):
+        self.seg.plot_detrended_signal()
