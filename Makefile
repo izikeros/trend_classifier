@@ -24,7 +24,7 @@ lint:
 
 ## Run tests using pytest
 test:
-	pytest $(PROJECT_NAME)
+	pytest tests/
 
 ## Create coverage report for package
 coverage:
