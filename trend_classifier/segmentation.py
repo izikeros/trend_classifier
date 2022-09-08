@@ -279,11 +279,11 @@ class Segmenter:
             plt.ylabel("value", fontsize=14)
         plt.show()
 
-    def plot_segments(self, fig_size: FigSize = (10, 5)) -> None:
+    def plot_segments(self, fig_size: FigSize = (8, 4)) -> None:
         """Plot all segments and linear trend lines.
 
         Args:
-            fig_size: size of the figure
+            fig_size: size of the figure e.g. (8, 4)
         """
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
