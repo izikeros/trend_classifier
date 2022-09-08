@@ -38,7 +38,7 @@ coverage_num:
 
 ## Show HTML report for trend_classifier package coverage
 coverage_show:
-	xdg-open htmlcov/index.html
+	$(OPEN) htmlcov/index.html
 
 ## Generate pdoc HTML documentation for trend_classifier package
 doc:
@@ -53,7 +53,19 @@ doc_view:
 	rmdir docs/$(PROJECT_NAME)
 	$(OPEN) ./docs/index.html
 
+## Generate requirements.txt and requirements-test.txt files
+reqs:
+	poetry export -f requirements.txt --output requirements.txt
+	poetry export -f requirements.txt --with test --output requirements-test.txt
 
+## Upgrade package versions for tox
+tox_reqs_update:
+	pip-upgrade tox-reqs/all.txt
+
+## Upgrade all (requirements used in tox envs, pyproject dependencies, pre-commit hooks)
+update: tox_reqs_update
+	pre-commit autoupdate
+	poetry update
 
 #################################################################################
 # Self Documenting Commands                                                     #
