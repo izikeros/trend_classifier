@@ -11,7 +11,7 @@ from trend_classifier.segment import Segments
 from trend_classifier.types import FigSize
 
 
-def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
+def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
     """Calculate how much two parameters differ.
 
     Used e.g. to calculate how much the slopes of two micro-segments differ.
@@ -138,18 +138,18 @@ class Segmenter:
                 # asses if the slope is similar to the previous one
                 prev_slope = float(prev_fit[0])
                 this_slope = float(fit[0])
-                r0 = error(prev_slope, this_slope, metrics=metrics_alpha)
+                r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
 
                 # asses if the offset is similar to the previous one
                 prev_offset = float(prev_fit[1])
                 this_offset = float(fit[1])
-                r1 = error(prev_offset, this_offset, metrics=metrics_beta)
+                r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
                 is_slope_different = r0 >= alpha
                 is_offset_different = r1 >= beta
 
                 if is_slope_different or is_offset_different:
-                    s_stop = determine_trend_end_point(off, start)
+                    s_stop = _determine_trend_end_point(off, start)
                     reason = self.describe_reason_for_new_segment(
                         is_offset_different, is_slope_different
                     )
@@ -317,7 +317,7 @@ class Segmenter:
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)
 
 
-def determine_trend_end_point(off: int, start: int) -> int:
+def _determine_trend_end_point(off: int, start: int) -> int:
     # TODO: KS: 2022-09-06: proper calculation of the end of the segment
     s_stop = start + off / 2
     return int(s_stop)
