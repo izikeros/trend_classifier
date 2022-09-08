@@ -1999,7 +1999,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "72c644c4cc371db9b2051f64bd515f4ac5e7a5ea930a064991526c3ad7809193"
+content-hash = "b55b8eb12f49d2a2e477b85c8eb45172b3a10ea503792903049d71b7df93b191"
 
 [metadata.files]
 alembic = [
