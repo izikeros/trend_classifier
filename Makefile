@@ -43,6 +43,8 @@ coverage_show:
 ## Generate pdoc HTML documentation for trend_classifier package
 doc:
 	pdoc --force --html --output-dir ./docs $(PROJECT_NAME)
+	mv docs/$(PROJECT_NAME)/* docs
+	rmdir docs/$(PROJECT_NAME)
 
 ## Generate pdoc HTML documentation for trend_classifier package and open in browser
 doc_view:
