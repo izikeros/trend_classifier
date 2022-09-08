@@ -65,6 +65,7 @@ tox_reqs_update:
 ## Upgrade all (requirements used in tox envs, pyproject dependencies, pre-commit hooks)
 update: tox_reqs_update
 	pre-commit autoupdate
+	pre-commit gc
 	poetry update
 
 #################################################################################
