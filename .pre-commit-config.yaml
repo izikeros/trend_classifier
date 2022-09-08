@@ -17,6 +17,7 @@ repos:
       - id: detect-private-key        # detects the presence of private keys.
       - id: fix-byte-order-marker     # removes utf-8 byte order marker.
       - id: check-executables-have-shebangs      # ensures that (non-binary) executables have a shebang.
+      - id: name-tests-test           # verifies that test files are named correctly.
       # - id: check-shebang-scripts-are-executable # ensures that (non-binary) files with a shebang are executable.(raises false positives on macOS)
 
   # A tool to automatically upgrade syntax for newer versions of the python language.
