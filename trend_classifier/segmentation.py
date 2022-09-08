@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment
+from trend_classifier.segment import Segments
 from trend_classifier.types import FigSize
 
 
@@ -89,7 +90,7 @@ class Segmenter:
 
         self.y_de_trended: Optional[list] = None
 
-        self.segments: Optional[list[Segment]] = None
+        self.segments: Optional[Segments[Segment]] = None
         self.slope: Optional[float] = None
         self.offset: Optional[float] = None
         self.slopes_std: Optional[float] = None
@@ -116,7 +117,7 @@ class Segmenter:
 
         prev_fit = None
 
-        segments = []
+        segments = Segments()
         s_start = 0
         slopes = []
         offsets = []

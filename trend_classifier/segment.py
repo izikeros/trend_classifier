@@ -41,3 +41,25 @@ class Segment(BaseModel):
         s5 = f"offsets_std={self.offsets_std})"
 
         return s1 + s2 + s3 + s4 + s5
+
+
+class Segments(list):
+    """List of segments.
+
+    New methods dedicated e.g. to processing od displaying list of segments
+    can be added here.
+    """
+
+    def to_dataframe(self):
+        """Convert segments to a pandas DataFrame.
+
+        Returns:
+            A pandas DataFrame.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError(
+                "Pandas is not installed. Install it with `pip install pandas`."
+            )
+        return pd.DataFrame([s.__dict__ for s in self])
