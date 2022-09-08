@@ -1,4 +1,10 @@
 
+# 2022-09-08
+
+## Added
+
+- `.to_dataframe()` method for Segments.
+
 # 2022-09-07
 
 ## Added
