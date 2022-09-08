@@ -5,14 +5,14 @@ from matplotlib import pyplot as plt
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment
-from trend_classifier.segment import Segments
+from trend_classifier.segment import SegmentList
 from trend_classifier.types import FigSize
 
 
 def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> float:
     """Calculate how much two parameters differ.
 
-    Used e.g. to calculate how much the slopes of two micro-segments differ.
+    Used e.g. to calculate how much the slopes of linear trends in two windows differ.
 
     Args:
         a: First parameter.
@@ -33,6 +33,8 @@ def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> flo
 
 
 class Segmenter:
+    """Class for segmenting a time series into segments with similar trend."""
+
     def __init__(
         self,
         x: list[int] | None = None,
@@ -42,6 +44,16 @@ class Segmenter:
         config: Config | None = None,
         n: int | None = None,
     ):
+        """Initialize the segmenter.
+
+        Args:
+            x: List of x values.
+            y: List of y values.
+            df: Pandas DataFrame with time series.
+            column: Name of the column with the time series.
+            config: Configuration of the segmenter.
+            n: Number of samples in a window.
+        """
 
         # Handle configuration
         if config is None:
@@ -88,7 +100,7 @@ class Segmenter:
 
         self.y_de_trended: list | None = None
 
-        self.segments: Segments[Segment] | None = None
+        self.segments: SegmentList[Segment] | None = None
         self.slope: float | None = None
         self.offset: float | None = None
         self.slopes_std: float | None = None
@@ -99,7 +111,7 @@ class Segmenter:
 
         Calculates:
          - boundaries of segments
-        - slopes and offsets of micro-segments
+        - slopes and offsets of windows
 
         """
         # check if initialized x and y
@@ -115,7 +127,7 @@ class Segmenter:
 
         prev_fit = None
 
-        segments = Segments()
+        segments = SegmentList()
         s_start = 0
         slopes = []
         offsets = []
@@ -191,6 +203,7 @@ class Segmenter:
         return reason
 
     def _describe_segments(self) -> None:
+        """Add extra information about the segments."""
         y_norm = []
         for idx, segment in enumerate(self.segments):
             start = segment.start
@@ -239,6 +252,13 @@ class Segmenter:
         col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:
+        """Plot segment with given index or multiple segments with given indices.
+
+        Args:
+            idx: index of the segment or list of indices of segments
+            col: color of the segment
+            fig_size: size of the figure
+        """
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
         if isinstance(idx, int):
@@ -260,6 +280,11 @@ class Segmenter:
         plt.show()
 
     def plot_segments(self, fig_size: FigSize = (10, 5)) -> None:
+        """Plot all segments and linear trend lines.
+
+        Args:
+            fig_size: size of the figure
+        """
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
         for segment in self.segments:
@@ -298,6 +323,11 @@ class Segmenter:
         plt.show()
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -> None:
+        """Plot de-trended signal.
+
+        Args:
+            fig_size: size of the figure
+        """
         plt.subplots(figsize=fig_size)
         plt.plot(self.x, self.y_de_trended, "b-")  # noqa: FKA01
         # add x- and y-axis labels
@@ -311,11 +341,21 @@ class Segmenter:
         Sum of absolute values of the points below/above the trend line.
         Normalized by the mean value of the signal.
         Normalized by the length of the signal.
+
+        Returns:
+            area outside trend
+
         """
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)
 
 
 def _determine_trend_end_point(off: int, start: int) -> int:
+    """Determine end point of the trend.
+
+    Args:
+        off: offset of the window
+        start: start point of the trend
+    """
     # TODO: KS: 2022-09-06: proper calculation of the end of the segment
     s_stop = start + off / 2
     return int(s_stop)

@@ -1,36 +1,45 @@
+"""Module with pydantic model of Segment and helper datastructure - SegmentList."""
 from pydantic import BaseModel
 
 
 class Segment(BaseModel):
-    """Segment of a time series.
+    """Segment of a time series."""
 
-    Attributes:
-        self.start: Start index of the segment.
-        self.stop: End index of the segment.
-        self.slope: Slope of the segment.
-        self.offset: Offset of the segment.
-        self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
-        self.slopes: List of slopes of the micro-segments.
-        self.offsets: Offsets of the micro-segments.
-        self.slopes_std: Standard deviation of the slopes.
-        self.offsets_std: Standard deviation of the offsets.
-        self.span: span of the values in the segment normalized by the mean value of the
-                            segment. Indicator if the volatility of the segment is high or low.
-    """
-
-    # mandatory attributes
+    # ---- mandatory attributes
     start: int
+    """Start index of the segment."""
+
     stop: int
+    """Stop index of the segment."""
+
     slopes: list[float] = []
+    """List of slopes of linear trends in windows in the segment."""
+
     offsets: list[float] = []
-    # optional attributes with default values
+    """List of offsets of linear trends in windows in the segment."""
+
+    # --- optional attributes with default values
     slope: float = 0
+    """Slope of the segment."""
+
     offset: float = 0
+    """Offset of the segments."""
+
     slopes_std: float = 0
+    """Standard deviation of the slopes of linear trends in windows in the segment."""
+
     offsets_std: float = 0
+    """Standard deviation of the offsets of linear trends in windows in the segment."""
+
     std: float = 0
+    """Standard deviation of the samples in the segment with removed trend."""
+
     span: float = 0
+    """Span of the values in the segment normalized by the mean value of the segment.
+    Indicator if the volatility of the segment is high or low."""
+
     reason_for_new_segment: str = ""
+    """Reason for creating a new segment (which criterion was violated)."""
 
     def __str__(self):
         return f"Segment(start={self.start}, stop={self.stop}, slope={self.slope:.4g})"
@@ -45,8 +54,8 @@ class Segment(BaseModel):
         return s1 + s2 + s3 + s4 + s5
 
 
-class Segments(list):
-    """List of segments.
+class SegmentList(list):
+    """List of segments. Each segment group samples with similar trend.
 
     New methods dedicated e.g. to processing od displaying list of segments
     can be added here.

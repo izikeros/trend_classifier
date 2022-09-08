@@ -1,9 +1,11 @@
-""""""
+"""Module with configuration class for Segmenter and sample configurations."""
 from pydantic import BaseModel
 from trend_classifier.models import Metrics
 
 
 class Config(BaseModel):
+    """Configuration of the Segmenter."""
+
     N: int = 60
     overlap_ratio: float = 0.33
 
@@ -23,6 +25,8 @@ CONFIG_ABS = Config(
     metrics_alpha=Metrics.ABSOLUTE_ERROR,
     metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
 )
+"""Configuration with using absolute error for alpha."""
+
 CONFIG_REL = Config(
     N=40,
     overlap_ratio=0.33,
@@ -31,3 +35,4 @@ CONFIG_REL = Config(
     metrics_alpha=Metrics.RELATIVE_ABSOLUTE_ERROR,
     metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
 )
+"""Configuration with using relative absolute error for alpha."""
