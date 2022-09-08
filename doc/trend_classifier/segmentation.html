@@ -35,10 +35,11 @@ from matplotlib import pyplot as plt
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment
+from trend_classifier.segment import Segments
 from trend_classifier.types import FigSize
 
 
-def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
+def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
     &#34;&#34;&#34;Calculate how much two parameters differ.
 
     Used e.g. to calculate how much the slopes of two micro-segments differ.
@@ -117,7 +118,7 @@ class Segmenter:
 
         self.y_de_trended: Optional[list] = None
 
-        self.segments: Optional[list[Segment]] = None
+        self.segments: Optional[Segments[Segment]] = None
         self.slope: Optional[float] = None
         self.offset: Optional[float] = None
         self.slopes_std: Optional[float] = None
@@ -144,7 +145,7 @@ class Segmenter:
 
         prev_fit = None
 
-        segments = []
+        segments = Segments()
         s_start = 0
         slopes = []
         offsets = []
@@ -165,18 +166,18 @@ class Segmenter:
                 # asses if the slope is similar to the previous one
                 prev_slope = float(prev_fit[0])
                 this_slope = float(fit[0])
-                r0 = error(prev_slope, this_slope, metrics=metrics_alpha)
+                r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
 
                 # asses if the offset is similar to the previous one
                 prev_offset = float(prev_fit[1])
                 this_offset = float(fit[1])
-                r1 = error(prev_offset, this_offset, metrics=metrics_beta)
+                r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
                 is_slope_different = r0 &gt;= alpha
                 is_offset_different = r1 &gt;= beta
 
                 if is_slope_different or is_offset_different:
-                    s_stop = determine_trend_end_point(off, start)
+                    s_stop = _determine_trend_end_point(off, start)
                     reason = self.describe_reason_for_new_segment(
                         is_offset_different, is_slope_different
                     )
@@ -344,7 +345,7 @@ class Segmenter:
         return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)
 
 
-def determine_trend_end_point(off: int, start: int) -&gt; int:
+def _determine_trend_end_point(off: int, start: int) -&gt; int:
     # TODO: KS: 2022-09-06: proper calculation of the end of the segment
     s_stop = start + off / 2
     return int(s_stop)
@@ -366,70 +367,6 @@ def determine_trend_end_point(off: int, start: int) -&gt; int:
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-functions">Functions</h2>
-<dl>
-<dt id="trend_classifier.segmentation.determine_trend_end_point"><code class="name flex">
-<span>def <span class="ident">determine_trend_end_point</span></span>(<span>off: int, start: int) ‑> int</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def determine_trend_end_point(off: int, start: int) -&gt; int:
-    # TODO: KS: 2022-09-06: proper calculation of the end of the segment
-    s_stop = start + off / 2
-    return int(s_stop)</code></pre>
-</details>
-</dd>
-<dt id="trend_classifier.segmentation.error"><code class="name flex">
-<span>def <span class="ident">error</span></span>(<span>a: float, b: float, metrics: <a title="trend_classifier.models.Metrics" href="models.html#trend_classifier.models.Metrics">Metrics</a> = Metrics.ABSOLUTE_ERROR)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Calculate how much two parameters differ.</p>
-<p>Used e.g. to calculate how much the slopes of two micro-segments differ.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>a</code></strong></dt>
-<dd>First parameter.</dd>
-<dt><strong><code>b</code></strong></dt>
-<dd>Second parameter.</dd>
-<dt><strong><code>metrics</code></strong></dt>
-<dd>Metrics to use for the calculation.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>Measure of difference between the two parameters.
-See Also:
-class <code>Metrics</code></p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
-    &#34;&#34;&#34;Calculate how much two parameters differ.
-
-    Used e.g. to calculate how much the slopes of two micro-segments differ.
-
-    Args:
-        a: First parameter.
-        b: Second parameter.
-        metrics: Metrics to use for the calculation.
-
-    Returns:
-        Measure of difference between the two parameters.
-
-    See Also:
-        class `Metrics`
-
-    &#34;&#34;&#34;
-    if metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        return np.abs(a - b) / a
-    if metrics == Metrics.ABSOLUTE_ERROR:
-        return np.abs(a - b)</code></pre>
-</details>
-</dd>
-</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -500,7 +437,7 @@ class <code>Metrics</code></p></div>
 
         self.y_de_trended: Optional[list] = None
 
-        self.segments: Optional[list[Segment]] = None
+        self.segments: Optional[Segments[Segment]] = None
         self.slope: Optional[float] = None
         self.offset: Optional[float] = None
         self.slopes_std: Optional[float] = None
@@ -527,7 +464,7 @@ class <code>Metrics</code></p></div>
 
         prev_fit = None
 
-        segments = []
+        segments = Segments()
         s_start = 0
         slopes = []
         offsets = []
@@ -548,18 +485,18 @@ class <code>Metrics</code></p></div>
                 # asses if the slope is similar to the previous one
                 prev_slope = float(prev_fit[0])
                 this_slope = float(fit[0])
-                r0 = error(prev_slope, this_slope, metrics=metrics_alpha)
+                r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
 
                 # asses if the offset is similar to the previous one
                 prev_offset = float(prev_fit[1])
                 this_offset = float(fit[1])
-                r1 = error(prev_offset, this_offset, metrics=metrics_beta)
+                r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
                 is_slope_different = r0 &gt;= alpha
                 is_offset_different = r1 &gt;= beta
 
                 if is_slope_different or is_offset_different:
-                    s_stop = determine_trend_end_point(off, start)
+                    s_stop = _determine_trend_end_point(off, start)
                     reason = self.describe_reason_for_new_segment(
                         is_offset_different, is_slope_different
                     )
@@ -805,7 +742,7 @@ Normalized by the length of the signal.</p></div>
 
     prev_fit = None
 
-    segments = []
+    segments = Segments()
     s_start = 0
     slopes = []
     offsets = []
@@ -826,18 +763,18 @@ Normalized by the length of the signal.</p></div>
             # asses if the slope is similar to the previous one
             prev_slope = float(prev_fit[0])
             this_slope = float(fit[0])
-            r0 = error(prev_slope, this_slope, metrics=metrics_alpha)
+            r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
 
             # asses if the offset is similar to the previous one
             prev_offset = float(prev_fit[1])
             this_offset = float(fit[1])
-            r1 = error(prev_offset, this_offset, metrics=metrics_beta)
+            r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
             is_slope_different = r0 &gt;= alpha
             is_offset_different = r1 &gt;= beta
 
             if is_slope_different or is_offset_different:
-                s_stop = determine_trend_end_point(off, start)
+                s_stop = _determine_trend_end_point(off, start)
                 reason = self.describe_reason_for_new_segment(
                     is_offset_different, is_slope_different
                 )
@@ -988,12 +925,6 @@ Normalized by the length of the signal.</p></div>
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="trend_classifier" href="index.html">trend_classifier</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
-<li><code><a title="trend_classifier.segmentation.determine_trend_end_point" href="#trend_classifier.segmentation.determine_trend_end_point">determine_trend_end_point</a></code></li>
-<li><code><a title="trend_classifier.segmentation.error" href="#trend_classifier.segmentation.error">error</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>

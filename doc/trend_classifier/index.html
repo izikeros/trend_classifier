@@ -27,7 +27,15 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;Package for automated trend classification.&#34;&#34;&#34;</code></pre>
+<pre><code class="python">&#34;&#34;&#34;Package for automated trend classification.&#34;&#34;&#34;
+from trend_classifier.configuration import CONFIG_ABS
+from trend_classifier.configuration import CONFIG_REL
+from trend_classifier.configuration import Config
+from trend_classifier.segment import Segment
+from trend_classifier.segmentation import Segmenter
+from trend_classifier.types import FigSize
+
+__all__ = [&#34;Segmenter&#34;, &#34;Segment&#34;, &#34;Config&#34;, &#34;CONFIG_ABS&#34;, &#34;CONFIG_REL&#34;, &#34;FigSize&#34;]</code></pre>
 </details>
 </section>
 <section>
@@ -64,6 +72,724 @@
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="trend_classifier.Config"><code class="flex name class">
+<span>class <span class="ident">Config</span></span>
+<span>(</span><span>**data: Any)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a new model by parsing and validating input data from keyword arguments.</p>
+<p>Raises ValidationError if the input data cannot be parsed to form a valid model.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Config(BaseModel):
+    N: int = 60
+    overlap_ratio: float = 0.33
+
+    # deviation for slope (RAE -&gt; 2, AE -&gt; 100)
+    alpha: float = 2
+    # deviation for offset (RAE -&gt; 2, AE -&gt; 0.25)
+    beta: float = 2
+    metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
+    metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>pydantic.main.BaseModel</li>
+<li>pydantic.utils.Representation</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="trend_classifier.Config.N"><code class="name">var <span class="ident">N</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Config.alpha"><code class="name">var <span class="ident">alpha</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Config.beta"><code class="name">var <span class="ident">beta</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Config.metrics_alpha"><code class="name">var <span class="ident">metrics_alpha</span> : <a title="trend_classifier.models.Metrics" href="models.html#trend_classifier.models.Metrics">Metrics</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Config.metrics_beta"><code class="name">var <span class="ident">metrics_beta</span> : <a title="trend_classifier.models.Metrics" href="models.html#trend_classifier.models.Metrics">Metrics</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Config.overlap_ratio"><code class="name">var <span class="ident">overlap_ratio</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="trend_classifier.Segment"><code class="flex name class">
+<span>class <span class="ident">Segment</span></span>
+<span>(</span><span>**data: Any)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Segment of a time series.</p>
+<h2 id="attributes">Attributes</h2>
+<p>self.start: Start index of the segment.
+self.stop: End index of the segment.
+self.slope: Slope of the segment.
+self.offset: Offset of the segment.
+self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
+self.slopes: List of slopes of the micro-segments.
+self.offsets: Offsets of the micro-segments.
+self.slopes_std: Standard deviation of the slopes.
+self.offsets_std: Standard deviation of the offsets.
+self.span: span of the values in the segment normalized by the mean value of the
+segment. Indicator if the volatility of the segment is high or low.
+Create a new model by parsing and validating input data from keyword arguments.</p>
+<p>Raises ValidationError if the input data cannot be parsed to form a valid model.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Segment(BaseModel):
+    &#34;&#34;&#34;Segment of a time series.
+
+    Attributes:
+        self.start: Start index of the segment.
+        self.stop: End index of the segment.
+        self.slope: Slope of the segment.
+        self.offset: Offset of the segment.
+        self.reason_for_new_segment: Reason for creating a new segment (which criterion was violated).
+        self.slopes: List of slopes of the micro-segments.
+        self.offsets: Offsets of the micro-segments.
+        self.slopes_std: Standard deviation of the slopes.
+        self.offsets_std: Standard deviation of the offsets.
+        self.span: span of the values in the segment normalized by the mean value of the
+                            segment. Indicator if the volatility of the segment is high or low.
+    &#34;&#34;&#34;
+
+    start: int
+    stop: int
+    slope: float = 0
+    offset: float = 0
+    slopes: list[float]
+    offsets: list[float]
+    slopes_std: float = 0
+    offsets_std: float = 0
+    std: float = 0
+    span: float = 0
+    reason_for_new_segment: str = &#34;&#34;
+
+    def __str__(self):
+        return f&#34;Segment(start={self.start}, stop={self.stop}, slope={self.slope:.4g})&#34;
+
+    def __repr__(self):
+        s1 = f&#34;Segment(start={self.start}, stop={self.stop}, slope={self.slope}, &#34;
+        s2 = f&#34;offset={self.offset}, std={self.std}, span={self.span}, &#34;
+        s3 = f&#34;reason_for_new_segment={self.reason_for_new_segment}, &#34;
+        s4 = f&#34;slopes={self.slopes}, offsets={self.offsets}, slopes_std={self.slopes_std}, &#34;
+        s5 = f&#34;offsets_std={self.offsets_std})&#34;
+
+        return s1 + s2 + s3 + s4 + s5</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>pydantic.main.BaseModel</li>
+<li>pydantic.utils.Representation</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="trend_classifier.Segment.offset"><code class="name">var <span class="ident">offset</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.offsets"><code class="name">var <span class="ident">offsets</span> : list[float]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.offsets_std"><code class="name">var <span class="ident">offsets_std</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.reason_for_new_segment"><code class="name">var <span class="ident">reason_for_new_segment</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.slope"><code class="name">var <span class="ident">slope</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.slopes"><code class="name">var <span class="ident">slopes</span> : list[float]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.slopes_std"><code class="name">var <span class="ident">slopes_std</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.span"><code class="name">var <span class="ident">span</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.start"><code class="name">var <span class="ident">start</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.std"><code class="name">var <span class="ident">std</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="trend_classifier.Segment.stop"><code class="name">var <span class="ident">stop</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="trend_classifier.Segmenter"><code class="flex name class">
+<span>class <span class="ident">Segmenter</span></span>
+<span>(</span><span>x: Optional[list[int]] = None, y: Optional[list[int]] = None, df=None, column: Optional[str] = 'Adj Close', config: Optional[<a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a>] = None, n: Optional[int] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Segmenter:
+    def __init__(
+        self,
+        x: Optional[list[int]] = None,
+        y: Optional[list[int]] = None,
+        df=None,
+        column: Optional[str] = &#34;Adj Close&#34;,
+        config: Optional[Config] = None,
+        n: Optional[int] = None,
+    ):
+
+        # Handle configuration
+        if config is None:
+            # use default configuration if no configuration is provided
+            self.config = Config()
+            if n is not None:
+                # override default N in configuration if N is provided
+                self.config.N = n
+        if config is not None and n is not None:
+            # raise error
+            raise ValueError(&#34;Provide either config or N, not both.&#34;)
+
+        # --- Handle input data
+        # error - most likely pandas dataframe as argument instead of kwarg
+        if x is not None and not isinstance(x, list):
+            # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
+            raise TypeError(
+                &#34;x must be a list, got {}. For pandas dataframe use &#39;df&#39; keyword argument&#34;.format(
+                    type(x)
+                )
+            )
+        # error - no input data provided
+        if x is None and y is None and df is None:
+            raise ValueError(&#34;Provide timeseries data: either x and y or df.&#34;)
+
+        # error - ambiguous input data provided - both x,y and df provided
+        if x is not None and y is not None and df is not None:
+            raise ValueError(
+                &#34;Provide timeseries data: either (x and y) or (df), not all.&#34;
+            )
+        # input data provided as x and y
+        if x is not None and y is not None:
+            self.x = x
+            self.y = y
+
+        # make warning if column provided but not dataframe
+        if df is None and column is not None:
+            warnings.warn(&#34;No dataframe provided, column argument will be ignored.&#34;)
+
+        # input data provided as dataframe
+        if df is not None:
+            self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
+            self.y = df[column].tolist()
+
+        self.y_de_trended: Optional[list] = None
+
+        self.segments: Optional[Segments[Segment]] = None
+        self.slope: Optional[float] = None
+        self.offset: Optional[float] = None
+        self.slopes_std: Optional[float] = None
+        self.offsets_std: Optional[float] = None
+
+    def calculate_segments(self) -&gt; list[Segment]:
+        &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
+
+        Calculates:
+         - boundaries of segments
+        - slopes and offsets of micro-segments
+
+        &#34;&#34;&#34;
+        # check if initialized x and y
+        if self.x is None or self.y is None:
+            raise ValueError(&#34;Segmenter x and y must be initialized!&#34;)
+        # Read data from config to short variables
+        N = self.config.N
+        overlap_ratio = self.config.overlap_ratio
+        alpha = self.config.alpha
+        beta = self.config.beta
+        metrics_alpha = self.config.metrics_alpha
+        metrics_beta = self.config.metrics_beta
+
+        prev_fit = None
+
+        segments = Segments()
+        s_start = 0
+        slopes = []
+        offsets = []
+        off = int(N * overlap_ratio)
+        if off == 0:
+            print(&#34;Overlap ratio is too small, setting it to 1&#34;)
+            print(&#34;N = &#34;, N)
+            print(&#34;overlap_ratio = &#34;, overlap_ratio)
+            off = 1
+        for start in range(0, len(self.x) - N, off):  # noqa: FKA01
+            fit = np.polyfit(
+                x=self.x[start : start + N], y=self.y[start : start + N], deg=1
+            )
+            slopes.append(fit[0])
+            offsets.append(fit[1])
+
+            if prev_fit is not None:
+                # asses if the slope is similar to the previous one
+                prev_slope = float(prev_fit[0])
+                this_slope = float(fit[0])
+                r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
+
+                # asses if the offset is similar to the previous one
+                prev_offset = float(prev_fit[1])
+                this_offset = float(fit[1])
+                r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
+
+                is_slope_different = r0 &gt;= alpha
+                is_offset_different = r1 &gt;= beta
+
+                if is_slope_different or is_offset_different:
+                    s_stop = _determine_trend_end_point(off, start)
+                    reason = self.describe_reason_for_new_segment(
+                        is_offset_different, is_slope_different
+                    )
+                    segments.append(
+                        Segment(
+                            start=int(s_start),
+                            stop=int(s_stop),
+                            slopes=slopes,
+                            offsets=offsets,
+                            reason_for_new_segment=reason,
+                        ),
+                    )
+                    s_start = s_stop + 1
+                    slopes = []
+                    offsets = []
+            prev_fit = fit
+
+        # add last segment
+        segments.append(
+            Segment(
+                start=int(s_start),
+                stop=int(len(self.x)),
+                slopes=slopes,
+                offsets=offsets,
+            )
+        )
+        self.segments = segments
+
+        # add extra information to the segments
+        self._describe_segments()
+
+        return segments
+
+    @staticmethod
+    def describe_reason_for_new_segment(
+        is_offset_different: bool, is_slope_different: bool
+    ) -&gt; str:
+        reason = &#34;slope&#34; if is_slope_different else &#34;offset&#34;
+        if is_slope_different and is_offset_different:
+            reason = &#34;slope and offset&#34;
+        return reason
+
+    def _describe_segments(self) -&gt; None:
+        y_norm = []
+        for idx, segment in enumerate(self.segments):
+            start = segment.start
+            stop = segment.stop
+
+            # x and y for the segment
+            xx = self.x[start : stop + 1]
+            yy = self.y[start : stop + 1]
+
+            # trend calculation
+            fit = np.polyfit(x=xx, y=yy, deg=1)
+            fit_fn = np.poly1d(fit)
+
+            # calculate point for the trend line
+            yt = np.array(fit_fn(xx))
+
+            # FIXME: KS: 2022-09-02: Normalize (as below?)
+            # normalize each point in yy by value of corresponding point in yt,
+            # store results in ydtn
+            # ydtn = yy / yt
+
+            ydt = np.array(yy) - yt
+
+            # calculate standard deviation of the values with removed trend
+            s = np.std(ydt)
+
+            # calculate span of the values in the segment normalized by
+            # the mean value of the segment
+            span = 1000 * (np.max(ydt) - np.min(ydt)) // np.mean(yy)
+
+            # store de-trended values
+            y_norm.extend(ydt)
+
+            # store volatility measures for the segment
+            self.segments[idx].std = s
+            self.segments[idx].span = span
+            self.y_de_trended = y_norm
+            self.segments[idx].slope = fit[0]
+            self.segments[idx].offset = fit[1]
+            self.segments[idx].slopes_std = np.std(self.segments[idx].slopes)
+            self.segments[idx].offsets_std = np.std(self.segments[idx].offsets)
+
+    def plot_segment(
+        self,
+        idx: Union[list[int], int],
+        col: str = &#34;red&#34;,
+        fig_size: FigSize = (10, 5),
+    ) -&gt; None:
+        plt.subplots(figsize=fig_size)
+        plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
+        if isinstance(idx, int):
+            idx = [idx]
+
+        for i in idx:
+            segment = self.segments[i]
+            start = segment.start
+            stop = segment.stop
+
+            xx = self.x[start:stop]
+            yy = self.y[start:stop]
+            plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
+            plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
+            plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
+            # add x- and y-axis labels
+            plt.xlabel(&#34;time&#34;, fontsize=14)
+            plt.ylabel(&#34;value&#34;, fontsize=14)
+        plt.show()
+
+    def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        plt.subplots(figsize=fig_size)
+        plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
+        for segment in self.segments:
+            start = segment.start
+            stop = segment.stop
+            slopes = segment.slopes
+
+            xx = self.x[start:stop]
+            yy = self.y[start:stop]
+            fit = np.polyfit(x=xx, y=yy, deg=1)
+            fit_fn = np.poly1d(fit)
+
+            all_positive_slopes = all([v &gt;= 0 for v in slopes])
+            all_negatives_slopes = all([v &lt; 0 for v in slopes])
+
+            if fit[0] &gt;= 0 and all_positive_slopes:
+                col = &#34;g&#34;
+            elif fit[0] &lt; 0 and all_negatives_slopes:
+                col = &#34;r&#34;
+            else:
+                col = &#34;#A66&#34;
+
+            plt.vlines(start, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
+            plt.vlines(stop, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
+
+            plt.plot(
+                self.x[start:stop],
+                fit_fn(self.x[start:stop]),
+                color=f&#34;{col}&#34;,
+                linestyle=&#34;--&#34;,
+                linewidth=3,
+            )
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;value&#34;, fontsize=14)
+        plt.show()
+
+    def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+        plt.subplots(figsize=fig_size)
+        plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
+        plt.show()
+
+    def calc_area_outside_trend(self) -&gt; float:
+        &#34;&#34;&#34;Calculate area outside trend.
+
+        Sum of absolute values of the points below/above the trend line.
+        Normalized by the mean value of the signal.
+        Normalized by the length of the signal.
+        &#34;&#34;&#34;
+        return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="trend_classifier.Segmenter.describe_reason_for_new_segment"><code class="name flex">
+<span>def <span class="ident">describe_reason_for_new_segment</span></span>(<span>is_offset_different: bool, is_slope_different: bool) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def describe_reason_for_new_segment(
+    is_offset_different: bool, is_slope_different: bool
+) -&gt; str:
+    reason = &#34;slope&#34; if is_slope_different else &#34;offset&#34;
+    if is_slope_different and is_offset_different:
+        reason = &#34;slope and offset&#34;
+    return reason</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="trend_classifier.Segmenter.calc_area_outside_trend"><code class="name flex">
+<span>def <span class="ident">calc_area_outside_trend</span></span>(<span>self) ‑> float</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate area outside trend.</p>
+<p>Sum of absolute values of the points below/above the trend line.
+Normalized by the mean value of the signal.
+Normalized by the length of the signal.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def calc_area_outside_trend(self) -&gt; float:
+    &#34;&#34;&#34;Calculate area outside trend.
+
+    Sum of absolute values of the points below/above the trend line.
+    Normalized by the mean value of the signal.
+    Normalized by the length of the signal.
+    &#34;&#34;&#34;
+    return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)</code></pre>
+</details>
+</dd>
+<dt id="trend_classifier.Segmenter.calculate_segments"><code class="name flex">
+<span>def <span class="ident">calculate_segments</span></span>(<span>self) ‑> list[<a title="trend_classifier.segment.Segment" href="segment.html#trend_classifier.segment.Segment">Segment</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate segments with similar trend for the given timeserie.</p>
+<p>Calculates:
+- boundaries of segments
+- slopes and offsets of micro-segments</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def calculate_segments(self) -&gt; list[Segment]:
+    &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
+
+    Calculates:
+     - boundaries of segments
+    - slopes and offsets of micro-segments
+
+    &#34;&#34;&#34;
+    # check if initialized x and y
+    if self.x is None or self.y is None:
+        raise ValueError(&#34;Segmenter x and y must be initialized!&#34;)
+    # Read data from config to short variables
+    N = self.config.N
+    overlap_ratio = self.config.overlap_ratio
+    alpha = self.config.alpha
+    beta = self.config.beta
+    metrics_alpha = self.config.metrics_alpha
+    metrics_beta = self.config.metrics_beta
+
+    prev_fit = None
+
+    segments = Segments()
+    s_start = 0
+    slopes = []
+    offsets = []
+    off = int(N * overlap_ratio)
+    if off == 0:
+        print(&#34;Overlap ratio is too small, setting it to 1&#34;)
+        print(&#34;N = &#34;, N)
+        print(&#34;overlap_ratio = &#34;, overlap_ratio)
+        off = 1
+    for start in range(0, len(self.x) - N, off):  # noqa: FKA01
+        fit = np.polyfit(
+            x=self.x[start : start + N], y=self.y[start : start + N], deg=1
+        )
+        slopes.append(fit[0])
+        offsets.append(fit[1])
+
+        if prev_fit is not None:
+            # asses if the slope is similar to the previous one
+            prev_slope = float(prev_fit[0])
+            this_slope = float(fit[0])
+            r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
+
+            # asses if the offset is similar to the previous one
+            prev_offset = float(prev_fit[1])
+            this_offset = float(fit[1])
+            r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
+
+            is_slope_different = r0 &gt;= alpha
+            is_offset_different = r1 &gt;= beta
+
+            if is_slope_different or is_offset_different:
+                s_stop = _determine_trend_end_point(off, start)
+                reason = self.describe_reason_for_new_segment(
+                    is_offset_different, is_slope_different
+                )
+                segments.append(
+                    Segment(
+                        start=int(s_start),
+                        stop=int(s_stop),
+                        slopes=slopes,
+                        offsets=offsets,
+                        reason_for_new_segment=reason,
+                    ),
+                )
+                s_start = s_stop + 1
+                slopes = []
+                offsets = []
+        prev_fit = fit
+
+    # add last segment
+    segments.append(
+        Segment(
+            start=int(s_start),
+            stop=int(len(self.x)),
+            slopes=slopes,
+            offsets=offsets,
+        )
+    )
+    self.segments = segments
+
+    # add extra information to the segments
+    self._describe_segments()
+
+    return segments</code></pre>
+</details>
+</dd>
+<dt id="trend_classifier.Segmenter.plot_detrended_signal"><code class="name flex">
+<span>def <span class="ident">plot_detrended_signal</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
+    plt.subplots(figsize=fig_size)
+    plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
+    # add x- and y-axis labels
+    plt.xlabel(&#34;time&#34;, fontsize=14)
+    plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
+    plt.show()</code></pre>
+</details>
+</dd>
+<dt id="trend_classifier.Segmenter.plot_segment"><code class="name flex">
+<span>def <span class="ident">plot_segment</span></span>(<span>self, idx: Union[list[int], int], col: str = 'red', fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_segment(
+    self,
+    idx: Union[list[int], int],
+    col: str = &#34;red&#34;,
+    fig_size: FigSize = (10, 5),
+) -&gt; None:
+    plt.subplots(figsize=fig_size)
+    plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
+    if isinstance(idx, int):
+        idx = [idx]
+
+    for i in idx:
+        segment = self.segments[i]
+        start = segment.start
+        stop = segment.stop
+
+        xx = self.x[start:stop]
+        yy = self.y[start:stop]
+        plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
+        plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
+        plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
+        # add x- and y-axis labels
+        plt.xlabel(&#34;time&#34;, fontsize=14)
+        plt.ylabel(&#34;value&#34;, fontsize=14)
+    plt.show()</code></pre>
+</details>
+</dd>
+<dt id="trend_classifier.Segmenter.plot_segments"><code class="name flex">
+<span>def <span class="ident">plot_segments</span></span>(<span>self, fig_size: Tuple[Union[float, int], Union[float, int]] = (10, 5)) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_segments(self, fig_size: FigSize = (10, 5)) -&gt; None:
+    plt.subplots(figsize=fig_size)
+    plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
+    for segment in self.segments:
+        start = segment.start
+        stop = segment.stop
+        slopes = segment.slopes
+
+        xx = self.x[start:stop]
+        yy = self.y[start:stop]
+        fit = np.polyfit(x=xx, y=yy, deg=1)
+        fit_fn = np.poly1d(fit)
+
+        all_positive_slopes = all([v &gt;= 0 for v in slopes])
+        all_negatives_slopes = all([v &lt; 0 for v in slopes])
+
+        if fit[0] &gt;= 0 and all_positive_slopes:
+            col = &#34;g&#34;
+        elif fit[0] &lt; 0 and all_negatives_slopes:
+            col = &#34;r&#34;
+        else:
+            col = &#34;#A66&#34;
+
+        plt.vlines(start, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
+        plt.vlines(stop, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
+
+        plt.plot(
+            self.x[start:stop],
+            fit_fn(self.x[start:stop]),
+            color=f&#34;{col}&#34;,
+            linestyle=&#34;--&#34;,
+            linewidth=3,
+        )
+    # add x- and y-axis labels
+    plt.xlabel(&#34;time&#34;, fontsize=14)
+    plt.ylabel(&#34;value&#34;, fontsize=14)
+    plt.show()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -80,6 +806,48 @@
 <li><code><a title="trend_classifier.segment" href="segment.html">trend_classifier.segment</a></code></li>
 <li><code><a title="trend_classifier.segmentation" href="segmentation.html">trend_classifier.segmentation</a></code></li>
 <li><code><a title="trend_classifier.types" href="types.html">trend_classifier.types</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="trend_classifier.Config" href="#trend_classifier.Config">Config</a></code></h4>
+<ul class="two-column">
+<li><code><a title="trend_classifier.Config.N" href="#trend_classifier.Config.N">N</a></code></li>
+<li><code><a title="trend_classifier.Config.alpha" href="#trend_classifier.Config.alpha">alpha</a></code></li>
+<li><code><a title="trend_classifier.Config.beta" href="#trend_classifier.Config.beta">beta</a></code></li>
+<li><code><a title="trend_classifier.Config.metrics_alpha" href="#trend_classifier.Config.metrics_alpha">metrics_alpha</a></code></li>
+<li><code><a title="trend_classifier.Config.metrics_beta" href="#trend_classifier.Config.metrics_beta">metrics_beta</a></code></li>
+<li><code><a title="trend_classifier.Config.overlap_ratio" href="#trend_classifier.Config.overlap_ratio">overlap_ratio</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="trend_classifier.Segment" href="#trend_classifier.Segment">Segment</a></code></h4>
+<ul class="">
+<li><code><a title="trend_classifier.Segment.offset" href="#trend_classifier.Segment.offset">offset</a></code></li>
+<li><code><a title="trend_classifier.Segment.offsets" href="#trend_classifier.Segment.offsets">offsets</a></code></li>
+<li><code><a title="trend_classifier.Segment.offsets_std" href="#trend_classifier.Segment.offsets_std">offsets_std</a></code></li>
+<li><code><a title="trend_classifier.Segment.reason_for_new_segment" href="#trend_classifier.Segment.reason_for_new_segment">reason_for_new_segment</a></code></li>
+<li><code><a title="trend_classifier.Segment.slope" href="#trend_classifier.Segment.slope">slope</a></code></li>
+<li><code><a title="trend_classifier.Segment.slopes" href="#trend_classifier.Segment.slopes">slopes</a></code></li>
+<li><code><a title="trend_classifier.Segment.slopes_std" href="#trend_classifier.Segment.slopes_std">slopes_std</a></code></li>
+<li><code><a title="trend_classifier.Segment.span" href="#trend_classifier.Segment.span">span</a></code></li>
+<li><code><a title="trend_classifier.Segment.start" href="#trend_classifier.Segment.start">start</a></code></li>
+<li><code><a title="trend_classifier.Segment.std" href="#trend_classifier.Segment.std">std</a></code></li>
+<li><code><a title="trend_classifier.Segment.stop" href="#trend_classifier.Segment.stop">stop</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="trend_classifier.Segmenter" href="#trend_classifier.Segmenter">Segmenter</a></code></h4>
+<ul class="">
+<li><code><a title="trend_classifier.Segmenter.calc_area_outside_trend" href="#trend_classifier.Segmenter.calc_area_outside_trend">calc_area_outside_trend</a></code></li>
+<li><code><a title="trend_classifier.Segmenter.calculate_segments" href="#trend_classifier.Segmenter.calculate_segments">calculate_segments</a></code></li>
+<li><code><a title="trend_classifier.Segmenter.describe_reason_for_new_segment" href="#trend_classifier.Segmenter.describe_reason_for_new_segment">describe_reason_for_new_segment</a></code></li>
+<li><code><a title="trend_classifier.Segmenter.plot_detrended_signal" href="#trend_classifier.Segmenter.plot_detrended_signal">plot_detrended_signal</a></code></li>
+<li><code><a title="trend_classifier.Segmenter.plot_segment" href="#trend_classifier.Segmenter.plot_segment">plot_segment</a></code></li>
+<li><code><a title="trend_classifier.Segmenter.plot_segments" href="#trend_classifier.Segmenter.plot_segments">plot_segments</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

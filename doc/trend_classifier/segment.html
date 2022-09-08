@@ -68,7 +68,29 @@ class Segment(BaseModel):
         s4 = f&#34;slopes={self.slopes}, offsets={self.offsets}, slopes_std={self.slopes_std}, &#34;
         s5 = f&#34;offsets_std={self.offsets_std})&#34;
 
-        return s1 + s2 + s3 + s4 + s5</code></pre>
+        return s1 + s2 + s3 + s4 + s5
+
+
+class Segments(list):
+    &#34;&#34;&#34;List of segments.
+
+    New methods dedicated e.g. to processing od displaying list of segments
+    can be added here.
+    &#34;&#34;&#34;
+
+    def to_dataframe(self):
+        &#34;&#34;&#34;Convert segments to a pandas DataFrame.
+
+        Returns:
+            A pandas DataFrame.
+        &#34;&#34;&#34;
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError(
+                &#34;Pandas is not installed. Install it with `pip install pandas`.&#34;
+            )
+        return pd.DataFrame([s.__dict__ for s in self])</code></pre>
 </details>
 </section>
 <section>
@@ -198,6 +220,73 @@ Create a new model by parsing and validating input data from keyword arguments.<
 </dd>
 </dl>
 </dd>
+<dt id="trend_classifier.segment.Segments"><code class="flex name class">
+<span>class <span class="ident">Segments</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>List of segments.</p>
+<p>New methods dedicated e.g. to processing od displaying list of segments
+can be added here.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Segments(list):
+    &#34;&#34;&#34;List of segments.
+
+    New methods dedicated e.g. to processing od displaying list of segments
+    can be added here.
+    &#34;&#34;&#34;
+
+    def to_dataframe(self):
+        &#34;&#34;&#34;Convert segments to a pandas DataFrame.
+
+        Returns:
+            A pandas DataFrame.
+        &#34;&#34;&#34;
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError(
+                &#34;Pandas is not installed. Install it with `pip install pandas`.&#34;
+            )
+        return pd.DataFrame([s.__dict__ for s in self])</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.list</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="trend_classifier.segment.Segments.to_dataframe"><code class="name flex">
+<span>def <span class="ident">to_dataframe</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Convert segments to a pandas DataFrame.</p>
+<h2 id="returns">Returns</h2>
+<p>A pandas DataFrame.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dataframe(self):
+    &#34;&#34;&#34;Convert segments to a pandas DataFrame.
+
+    Returns:
+        A pandas DataFrame.
+    &#34;&#34;&#34;
+    try:
+        import pandas as pd
+    except ImportError:
+        raise ImportError(
+            &#34;Pandas is not installed. Install it with `pip install pandas`.&#34;
+        )
+    return pd.DataFrame([s.__dict__ for s in self])</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
 </dl>
 </section>
 </article>
@@ -228,6 +317,12 @@ Create a new model by parsing and validating input data from keyword arguments.<
 <li><code><a title="trend_classifier.segment.Segment.start" href="#trend_classifier.segment.Segment.start">start</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.std" href="#trend_classifier.segment.Segment.std">std</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.stop" href="#trend_classifier.segment.Segment.stop">stop</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="trend_classifier.segment.Segments" href="#trend_classifier.segment.Segments">Segments</a></code></h4>
+<ul class="">
+<li><code><a title="trend_classifier.segment.Segments.to_dataframe" href="#trend_classifier.segment.Segments.to_dataframe">to_dataframe</a></code></li>
 </ul>
 </li>
 </ul>
