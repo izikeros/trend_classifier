@@ -2,11 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 # Use: `pre-commit autoupdate` to update the hooks
 
-
 repos:
-  # Remove trailing whitespace
-  # Ensure that all files end with a newline
-  # Harmonize line endings
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
     hooks:
@@ -22,6 +18,13 @@ repos:
       - id: fix-byte-order-marker     # removes utf-8 byte order marker.
       - id: check-executables-have-shebangs      # ensures that (non-binary) executables have a shebang.
       # - id: check-shebang-scripts-are-executable # ensures that (non-binary) files with a shebang are executable.(raises false positives on macOS)
+
+  # A tool to automatically upgrade syntax for newer versions of the python language.
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.37.3
+    hooks:
+      - id: pyupgrade
+        args: [ --py310-plus ]
 
   #  A formatter for finding and removing unused import statements.
   - repo: https://github.com/hadialqattan/pycln
@@ -46,12 +49,7 @@ repos:
     hooks:
       - id: black
 
-#  # A tool to automatically upgrade syntax for newer versions of the python language.
-#  - repo: https://github.com/asottile/pyupgrade
-#    rev: v2.37.3
-#    hooks:
-#      - id: pyupgrade
-#        args: [ --py39-plus ]
+
 
   # A tool to automatically fix common style issues in Python code. Has plugins.
   - repo: https://github.com/pycqa/flake8
@@ -59,7 +57,7 @@ repos:
     hooks:
       - id: flake8
         exclude: (__pycache__|.venv|tmp|.tox)
-        additional_dependencies: [ flake8-import-order, flake8-keyword-arguments ]
+        additional_dependencies: [ flake8-import-order, flake8-keyword-arguments, flake8-bugbear ]
 
   # Find common security issues in your Python code using bandit.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
