@@ -18,12 +18,14 @@ class Segment(BaseModel):
                             segment. Indicator if the volatility of the segment is high or low.
     """
 
+    # mandatory attributes
     start: int
     stop: int
+    slopes: list[float] = []
+    offsets: list[float] = []
+    # optional attributes with default values
     slope: float = 0
     offset: float = 0
-    slopes: list[float]
-    offsets: list[float]
     slopes_std: float = 0
     offsets_std: float = 0
     std: float = 0

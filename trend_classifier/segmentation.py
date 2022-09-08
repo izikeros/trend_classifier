@@ -1,6 +1,4 @@
 import warnings
-from typing import Optional
-from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -11,7 +9,7 @@ from trend_classifier.segment import Segments
 from trend_classifier.types import FigSize
 
 
-def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
+def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> float:
     """Calculate how much two parameters differ.
 
     Used e.g. to calculate how much the slopes of two micro-segments differ.
@@ -29,20 +27,20 @@ def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR):
 
     """
     if metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        return np.abs(a - b) / a
+        return abs(a - b) / a
     if metrics == Metrics.ABSOLUTE_ERROR:
-        return np.abs(a - b)
+        return abs(a - b)
 
 
 class Segmenter:
     def __init__(
         self,
-        x: Optional[list[int]] = None,
-        y: Optional[list[int]] = None,
+        x: list[int] | None = None,
+        y: list[int] | None = None,
         df=None,
-        column: Optional[str] = "Adj Close",
-        config: Optional[Config] = None,
-        n: Optional[int] = None,
+        column: str | None = "Adj Close",
+        config: Config | None = None,
+        n: int | None = None,
     ):
 
         # Handle configuration
@@ -88,13 +86,13 @@ class Segmenter:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
 
-        self.y_de_trended: Optional[list] = None
+        self.y_de_trended: list | None = None
 
-        self.segments: Optional[Segments[Segment]] = None
-        self.slope: Optional[float] = None
-        self.offset: Optional[float] = None
-        self.slopes_std: Optional[float] = None
-        self.offsets_std: Optional[float] = None
+        self.segments: Segments[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
     def calculate_segments(self) -> list[Segment]:
         """Calculate segments with similar trend for the given timeserie.
@@ -237,7 +235,7 @@ class Segmenter:
 
     def plot_segment(
         self,
-        idx: Union[list[int], int],
+        idx: list[int] | int,
         col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:
