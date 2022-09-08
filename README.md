@@ -37,7 +37,7 @@ seg.calculate_segments()
 
 For graphical output use `Segmenter.plot_segments()`:
 ```python
-seg.plot_segments(fig_size=(8, 4))
+seg.plot_segments()
 ```
 
 ![Segmentation example](https://github.com/izikeros/trend_classifier/blob/main/img/screenshoot_1.jpg?raw=true)
