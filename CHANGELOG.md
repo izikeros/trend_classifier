@@ -3,7 +3,7 @@
 
 ## Added
 
-- `.to_dataframe()` method for Segments.
+- `.to_dataframe()` method for SegmentList.
 
 # 2022-09-07
 
