@@ -4,8 +4,9 @@
 ![](https://img.shields.io/pypi/l/trend-classifier.svg)
 ![](https://img.shields.io/pypi/dm/trend-classifier.svg)
 [![](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-![](https://img.shields.io/badge/code%20style-black-000000.svg)
-
+[![Black formatter](https://github.com/izikeros/trend_classifier/actions/workflows/black.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/black.yml)
+[![flake8](https://github.com/izikeros/trend_classifier/actions/workflows/flake8.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/flake8.yml)
+[![pytest](https://github.com/izikeros/trend_classifier/actions/workflows/pytest.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/pytest.yml)
 Library for automated signal segmentation, trend classification and analysis.
 
 ## Installation
