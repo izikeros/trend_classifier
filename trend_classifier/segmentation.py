@@ -56,13 +56,9 @@ class Segmenter:
             config: Configuration of the segmenter.
             n: Number of samples in a window.
         """
-
         self._handle_configuration(config, n)
-
         self._handle_input_data(column=column, df=df, x=x, y=y)
-
         self.y_de_trended: list | None = None
-
         self.segments: SegmentList[Segment] | None = None
         self.slope: float | None = None
         self.offset: float | None = None
