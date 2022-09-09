@@ -1,12 +1,14 @@
 import warnings
 
 import numpy as np
-from matplotlib import pyplot as plt
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment
 from trend_classifier.segment import SegmentList
 from trend_classifier.types import FigSize
+from trend_classifier.visuals import _plot_detrended_signal
+from trend_classifier.visuals import _plot_segment
+from trend_classifier.visuals import _plot_segments
 
 
 def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> float:
@@ -259,25 +261,7 @@ class Segmenter:
             col: color of the segment
             fig_size: size of the figure
         """
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
-        if isinstance(idx, int):
-            idx = [idx]
-
-        for i in idx:
-            segment = self.segments[i]
-            start = segment.start
-            stop = segment.stop
-
-            xx = self.x[start:stop]
-            yy = self.y[start:stop]
-            plt.plot(xx, yy, color=col, linestyle="-", linewidth=2)
-            plt.scatter(xx[0], yy[0], color="k", s=10)
-            plt.scatter(xx[-1], yy[-1], color="k", s=10)
-            # add x- and y-axis labels
-            plt.xlabel("time", fontsize=14)
-            plt.ylabel("value", fontsize=14)
-        plt.show()
+        _plot_segment(obj=self, idx=idx, col=col, fig_size=fig_size)
 
     def plot_segments(self, fig_size: FigSize = (8, 4)) -> None:
         """Plot all segments and linear trend lines.
@@ -285,42 +269,7 @@ class Segmenter:
         Args:
             fig_size: size of the figure e.g. (8, 4)
         """
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y, color="#AAD", linestyle="solid")
-        for segment in self.segments:
-            start = segment.start
-            stop = segment.stop
-            slopes = segment.slopes
-
-            xx = self.x[start:stop]
-            yy = self.y[start:stop]
-            fit = np.polyfit(x=xx, y=yy, deg=1)
-            fit_fn = np.poly1d(fit)
-
-            all_positive_slopes = all([v >= 0 for v in slopes])
-            all_negatives_slopes = all([v < 0 for v in slopes])
-
-            if fit[0] >= 0 and all_positive_slopes:
-                col = "g"
-            elif fit[0] < 0 and all_negatives_slopes:
-                col = "r"
-            else:
-                col = "#A66"
-
-            plt.vlines(start, min(self.y), max(self.y), "#CCC")  # noqa: FKA01
-            plt.vlines(stop, min(self.y), max(self.y), "#CCC")  # noqa: FKA01
-
-            plt.plot(
-                self.x[start:stop],
-                fit_fn(self.x[start:stop]),
-                color=f"{col}",
-                linestyle="--",
-                linewidth=3,
-            )
-        # add x- and y-axis labels
-        plt.xlabel("time", fontsize=14)
-        plt.ylabel("value", fontsize=14)
-        plt.show()
+        _plot_segments(self, fig_size)
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -> None:
         """Plot de-trended signal.
@@ -328,12 +277,9 @@ class Segmenter:
         Args:
             fig_size: size of the figure
         """
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y_de_trended, "b-")  # noqa: FKA01
-        # add x- and y-axis labels
-        plt.xlabel("time", fontsize=14)
-        plt.ylabel("de-trended value", fontsize=14)
-        plt.show()
+        _plot_detrended_signal(
+            x=self.x, y_de_trended=self.y_de_trended, fig_size=fig_size
+        )
 
     def calc_area_outside_trend(self) -> float:
         """Calculate area outside trend.
