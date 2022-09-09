@@ -57,6 +57,19 @@ class Segmenter:
             n: Number of samples in a window.
         """
 
+        self._handle_configuration(config, n)
+
+        self._handle_input_data(column=column, df=df, x=x, y=y)
+
+        self.y_de_trended: list | None = None
+
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
+
+    def _handle_configuration(self, config, n):
         # Handle configuration
         if config is None:
             # use default configuration if no configuration is provided
@@ -68,6 +81,7 @@ class Segmenter:
             # raise error
             raise ValueError("Provide either config or N, not both.")
 
+    def _handle_input_data(self, column, df, x, y):
         # --- Handle input data
         # error - most likely pandas dataframe as argument instead of kwarg
         if x is not None and not isinstance(x, list):
@@ -80,7 +94,6 @@ class Segmenter:
         # error - no input data provided
         if x is None and y is None and df is None:
             raise ValueError("Provide timeseries data: either x and y or df.")
-
         # error - ambiguous input data provided - both x,y and df provided
         if x is not None and y is not None and df is not None:
             raise ValueError(
@@ -90,23 +103,13 @@ class Segmenter:
         if x is not None and y is not None:
             self.x = x
             self.y = y
-
         # make warning if column provided but not dataframe
         if df is None and column is not None:
             warnings.warn("No dataframe provided, column argument will be ignored.")
-
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
-
-        self.y_de_trended: list | None = None
-
-        self.segments: SegmentList[Segment] | None = None
-        self.slope: float | None = None
-        self.offset: float | None = None
-        self.slopes_std: float | None = None
-        self.offsets_std: float | None = None
 
     def calculate_segments(self) -> list[Segment]:
         """Calculate segments with similar trend for the given timeserie.
@@ -130,21 +133,17 @@ class Segmenter:
         prev_fit = None
 
         segments = SegmentList()
-        s_start = 0
-        slopes = []
-        offsets = []
-        off = int(N * overlap_ratio)
-        if off == 0:
-            print("Overlap ratio is too small, setting it to 1")
-            print("N = ", N)
-            print("overlap_ratio = ", overlap_ratio)
-            off = 1
+
+        new_segment = {"s_start": 0, "slopes": [], "offsets": []}
+
+        off = self._set_offset(N, overlap_ratio)
+
         for start in range(0, len(self.x) - N, off):  # noqa: FKA01
             fit = np.polyfit(
                 x=self.x[start : start + N], y=self.y[start : start + N], deg=1
             )
-            slopes.append(fit[0])
-            offsets.append(fit[1])
+            new_segment["slopes"].append(fit[0])
+            new_segment["offsets"].append(fit[1])
 
             if prev_fit is not None:
                 # asses if the slope is similar to the previous one
@@ -157,35 +156,21 @@ class Segmenter:
                 this_offset = float(fit[1])
                 r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
-                is_slope_different = r0 >= alpha
-                is_offset_different = r1 >= beta
+                new_segment["is_slope_different"] = r0 >= alpha
+                new_segment["is_offset_different"] = r1 >= beta
 
-                if is_slope_different or is_offset_different:
-                    s_stop = _determine_trend_end_point(off, start)
-                    reason = self.describe_reason_for_new_segment(
-                        is_offset_different, is_slope_different
-                    )
-                    segments.append(
-                        Segment(
-                            start=int(s_start),
-                            stop=int(s_stop),
-                            slopes=slopes,
-                            offsets=offsets,
-                            reason_for_new_segment=reason,
-                        ),
-                    )
-                    s_start = s_stop + 1
-                    slopes = []
-                    offsets = []
+                new_segment = self._finish_segment_if_needed(
+                    offset=off, new_segment=new_segment, segments=segments, start=start
+                )
             prev_fit = fit
 
         # add last segment
         segments.append(
             Segment(
-                start=int(s_start),
+                start=int(new_segment["s_start"]),
                 stop=int(len(self.x)),
-                slopes=slopes,
-                offsets=offsets,
+                slopes=new_segment["slopes"],
+                offsets=new_segment["offsets"],
             )
         )
         self.segments = segments
@@ -194,6 +179,39 @@ class Segmenter:
         self._describe_segments()
 
         return segments
+
+    def _finish_segment_if_needed(self, offset, new_segment, segments, start):
+        need_to_finish_segment = (
+            new_segment["is_slope_different"] or new_segment["is_offset_different"]
+        )
+        if need_to_finish_segment:
+            s_stop = _determine_trend_end_point(offset, start)
+            reason = self.describe_reason_for_new_segment(
+                new_segment["is_offset_different"], new_segment["is_slope_different"]
+            )
+            segments.append(
+                Segment(
+                    start=int(new_segment["s_start"]),
+                    stop=int(s_stop),
+                    slopes=new_segment["slopes"],
+                    offsets=new_segment["offsets"],
+                    reason_for_new_segment=reason,
+                ),
+            )
+            new_segment["s_start"] = s_stop + 1
+            new_segment["slopes"] = []
+            new_segment["offsets"] = []
+        return new_segment
+
+    @staticmethod
+    def _set_offset(n, overlap_ratio):
+        off = int(n * overlap_ratio)
+        if off == 0:
+            print("Overlap ratio is too small, setting it to 1")
+            print("N = ", n)
+            print("overlap_ratio = ", overlap_ratio)
+            off = 1
+        return off
 
     @staticmethod
     def describe_reason_for_new_segment(
