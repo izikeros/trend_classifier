@@ -45,6 +45,7 @@ yfinance = "^0.1.74"
 pandas = "^1.4.3"
 pip-upgrader = "^1.4.15"
 pytest-sugar = "^0.9.5"
+pytest-cov = "^3.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"
