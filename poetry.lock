@@ -1177,7 +1177,7 @@ pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
 name = "pandas"
 version = "1.4.4"
 description = "Powerful data structures for data analysis, time series, and statistics"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.8"
 
@@ -1634,7 +1634,7 @@ six = ">=1.5"
 name = "pytz"
 version = "2022.2.1"
 description = "World timezone definitions, modern and historical"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -2118,7 +2118,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "0148458568b8367e735023618574a7bfcde039db2585ea5a5f32b6ed284acd3f"
+content-hash = "4613aa3bfc8a666ae478ee2dde658b3b462867ae3beaf3918aae90312bc9ecd0"
 
 [metadata.files]
 alembic = [
