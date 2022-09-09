@@ -77,6 +77,12 @@ and you should see something like this:
         reason_for_new_segment='offset',
     )
 ```
+export results to tabular format (pandas DataFrame):
+```python
+seg.segments.to_dataframe()
+```
+![](https://github.com/izikeros/trend_classifier/blob/main/img/to_dataframe.jpg?raw=true)
+(not all columns are shown)
 
 ## License
 
