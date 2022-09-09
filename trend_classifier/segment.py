@@ -73,4 +73,21 @@ class SegmentList(list):
             raise ImportError(
                 "Pandas is not installed. Install it with `pip install pandas`."
             )
-        return pd.DataFrame([s.__dict__ for s in self])
+        df = pd.DataFrame([s.__dict__ for s in self])
+        # reorder columns
+        df = df[
+            [
+                "start",
+                "stop",
+                "slope",
+                "offset",
+                "slopes_std",
+                "offsets_std",
+                "std",
+                "span",
+                "reason_for_new_segment",
+                "slopes",
+                "offsets",
+            ]
+        ]
+        return df
