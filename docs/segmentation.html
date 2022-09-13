@@ -29,12 +29,15 @@
 <pre><code class="python">import warnings
 
 import numpy as np
-from matplotlib import pyplot as plt
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment
 from trend_classifier.segment import SegmentList
 from trend_classifier.types import FigSize
+from trend_classifier.visuals import _plot_detrended_signal
+from trend_classifier.visuals import _plot_segment
+from trend_classifier.visuals import _plot_segment_with_trendlines_no_context
+from trend_classifier.visuals import _plot_segments
 
 
 def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -&gt; float:
@@ -55,7 +58,7 @@ def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -&gt; 
 
     &#34;&#34;&#34;
     if metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        return abs(a - b) / a
+        return abs(a - b) / abs(a)
     if metrics == Metrics.ABSOLUTE_ERROR:
         return abs(a - b)
 
@@ -82,7 +85,16 @@ class Segmenter:
             config: Configuration of the segmenter.
             n: Number of samples in a window.
         &#34;&#34;&#34;
+        self._handle_configuration(config, n)
+        self._handle_input_data(column=column, df=df, x=x, y=y)
+        self.y_de_trended: list | None = None
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
+    def _handle_configuration(self, config, n):
         # Handle configuration
         if config is None:
             # use default configuration if no configuration is provided
@@ -90,10 +102,13 @@ class Segmenter:
             if n is not None:
                 # override default N in configuration if N is provided
                 self.config.N = n
-        if config is not None and n is not None:
-            # raise error
-            raise ValueError(&#34;Provide either config or N, not both.&#34;)
+        if config is not None:
+            if n is not None:
+                # raise error
+                raise ValueError(&#34;Provide either config or N, not both.&#34;)
+            self.config = config
 
+    def _handle_input_data(self, column, df, x, y):
         # --- Handle input data
         # error - most likely pandas dataframe as argument instead of kwarg
         if x is not None and not isinstance(x, list):
@@ -106,7 +121,6 @@ class Segmenter:
         # error - no input data provided
         if x is None and y is None and df is None:
             raise ValueError(&#34;Provide timeseries data: either x and y or df.&#34;)
-
         # error - ambiguous input data provided - both x,y and df provided
         if x is not None and y is not None and df is not None:
             raise ValueError(
@@ -116,23 +130,13 @@ class Segmenter:
         if x is not None and y is not None:
             self.x = x
             self.y = y
-
         # make warning if column provided but not dataframe
         if df is None and column is not None:
             warnings.warn(&#34;No dataframe provided, column argument will be ignored.&#34;)
-
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
-
-        self.y_de_trended: list | None = None
-
-        self.segments: SegmentList[Segment] | None = None
-        self.slope: float | None = None
-        self.offset: float | None = None
-        self.slopes_std: float | None = None
-        self.offsets_std: float | None = None
 
     def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
@@ -156,21 +160,17 @@ class Segmenter:
         prev_fit = None
 
         segments = SegmentList()
-        s_start = 0
-        slopes = []
-        offsets = []
-        off = int(N * overlap_ratio)
-        if off == 0:
-            print(&#34;Overlap ratio is too small, setting it to 1&#34;)
-            print(&#34;N = &#34;, N)
-            print(&#34;overlap_ratio = &#34;, overlap_ratio)
-            off = 1
+
+        new_segment = {&#34;s_start&#34;: 0, &#34;slopes&#34;: [], &#34;offsets&#34;: [], &#34;starts&#34;: []}
+
+        off = self._set_offset(N, overlap_ratio)
+
         for start in range(0, len(self.x) - N, off):  # noqa: FKA01
-            fit = np.polyfit(
-                x=self.x[start : start + N], y=self.y[start : start + N], deg=1
-            )
-            slopes.append(fit[0])
-            offsets.append(fit[1])
+            end = start + N
+            fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
+            new_segment[&#34;slopes&#34;].append(fit[0])
+            new_segment[&#34;offsets&#34;].append(fit[1])
+            new_segment[&#34;starts&#34;].append(start)
 
             if prev_fit is not None:
                 # asses if the slope is similar to the previous one
@@ -183,43 +183,74 @@ class Segmenter:
                 this_offset = float(fit[1])
                 r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
-                is_slope_different = r0 &gt;= alpha
-                is_offset_different = r1 &gt;= beta
+                is_slope_different = r0 &gt;= alpha if alpha is not None else False
+                is_offset_different = r1 &gt;= beta if beta is not None else False
+                new_segment[&#34;is_slope_different&#34;] = is_slope_different
+                new_segment[&#34;is_offset_different&#34;] = is_offset_different
 
-                if is_slope_different or is_offset_different:
-                    s_stop = _determine_trend_end_point(off, start)
-                    reason = self.describe_reason_for_new_segment(
-                        is_offset_different, is_slope_different
-                    )
-                    segments.append(
-                        Segment(
-                            start=int(s_start),
-                            stop=int(s_stop),
-                            slopes=slopes,
-                            offsets=offsets,
-                            reason_for_new_segment=reason,
-                        ),
-                    )
-                    s_start = s_stop + 1
-                    slopes = []
-                    offsets = []
+                new_segment = self._finish_segment_if_needed(
+                    offset=off, new_segment=new_segment, segments=segments, start=start
+                )
             prev_fit = fit
 
         # add last segment
-        segments.append(
-            Segment(
-                start=int(s_start),
-                stop=int(len(self.x)),
-                slopes=slopes,
-                offsets=offsets,
-            )
+        last_segment = Segment(
+            start=int(new_segment[&#34;s_start&#34;]),
+            stop=int(len(self.x)),
+            slopes=new_segment[&#34;slopes&#34;],
+            offsets=new_segment[&#34;offsets&#34;],
+            starts=new_segment[&#34;starts&#34;],
         )
+
+        segments.append(last_segment)
         self.segments = segments
+
+        # remove outstanding windows
+        last_segment.remove_outstanding_windows(self.config.N)
 
         # add extra information to the segments
         self._describe_segments()
 
         return segments
+
+    def _finish_segment_if_needed(self, offset, new_segment, segments, start):
+        need_to_finish_segment = (
+            new_segment[&#34;is_slope_different&#34;] or new_segment[&#34;is_offset_different&#34;]
+        )
+        if need_to_finish_segment:
+            s_stop = _determine_trend_end_point(offset, start)
+            reason = self.describe_reason_for_new_segment(
+                new_segment[&#34;is_offset_different&#34;], new_segment[&#34;is_slope_different&#34;]
+            )
+
+            segment = Segment(
+                start=int(new_segment[&#34;s_start&#34;]),
+                stop=int(s_stop),
+                slopes=new_segment[&#34;slopes&#34;],
+                offsets=new_segment[&#34;offsets&#34;],
+                starts=new_segment[&#34;starts&#34;],
+                reason_for_new_segment=reason,
+            )
+
+            # remove outstanding windows
+            segment.remove_outstanding_windows(self.config.N)
+
+            segments.append(segment)
+            new_segment[&#34;s_start&#34;] = s_stop + 1
+            new_segment[&#34;slopes&#34;] = []
+            new_segment[&#34;offsets&#34;] = []
+            new_segment[&#34;starts&#34;] = []
+        return new_segment
+
+    @staticmethod
+    def _set_offset(n, overlap_ratio):
+        offset = int(n * overlap_ratio)
+        if offset == 0:
+            print(&#34;Overlap ratio is too small, setting it to 1&#34;)
+            print(&#34;N = &#34;, n)
+            print(&#34;overlap_ratio = &#34;, overlap_ratio)
+            offset = 1
+        return offset
 
     @staticmethod
     def describe_reason_for_new_segment(
@@ -287,68 +318,28 @@ class Segmenter:
             col: color of the segment
             fig_size: size of the figure
         &#34;&#34;&#34;
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
-        if isinstance(idx, int):
-            idx = [idx]
+        _plot_segment(obj=self, idx=idx, col=col, fig_size=fig_size)
 
-        for i in idx:
-            segment = self.segments[i]
-            start = segment.start
-            stop = segment.stop
+    def plot_segment_with_trendlines_no_context(
+        self,
+        idx: int,
+        fig_size: FigSize = (10, 5),
+    ) -&gt; None:
+        &#34;&#34;&#34;Plot segment with given index.
 
-            xx = self.x[start:stop]
-            yy = self.y[start:stop]
-            plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
-            plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
-            plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
-            # add x- and y-axis labels
-            plt.xlabel(&#34;time&#34;, fontsize=14)
-            plt.ylabel(&#34;value&#34;, fontsize=14)
-        plt.show()
+        Args:
+            idx: index of the segment or list of indices of segments
+            fig_size: size of the figure
+        &#34;&#34;&#34;
+        _plot_segment_with_trendlines_no_context(obj=self, idx=idx, fig_size=fig_size)
 
     def plot_segments(self, fig_size: FigSize = (8, 4)) -&gt; None:
         &#34;&#34;&#34;Plot all segments and linear trend lines.
 
         Args:
-            fig_size: size of the figure
+            fig_size: size of the figure e.g. (8, 4)
         &#34;&#34;&#34;
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
-        for segment in self.segments:
-            start = segment.start
-            stop = segment.stop
-            slopes = segment.slopes
-
-            xx = self.x[start:stop]
-            yy = self.y[start:stop]
-            fit = np.polyfit(x=xx, y=yy, deg=1)
-            fit_fn = np.poly1d(fit)
-
-            all_positive_slopes = all([v &gt;= 0 for v in slopes])
-            all_negatives_slopes = all([v &lt; 0 for v in slopes])
-
-            if fit[0] &gt;= 0 and all_positive_slopes:
-                col = &#34;g&#34;
-            elif fit[0] &lt; 0 and all_negatives_slopes:
-                col = &#34;r&#34;
-            else:
-                col = &#34;#A66&#34;
-
-            plt.vlines(start, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
-            plt.vlines(stop, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
-
-            plt.plot(
-                self.x[start:stop],
-                fit_fn(self.x[start:stop]),
-                color=f&#34;{col}&#34;,
-                linestyle=&#34;--&#34;,
-                linewidth=3,
-            )
-        # add x- and y-axis labels
-        plt.xlabel(&#34;time&#34;, fontsize=14)
-        plt.ylabel(&#34;value&#34;, fontsize=14)
-        plt.show()
+        _plot_segments(self, fig_size)
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
         &#34;&#34;&#34;Plot de-trended signal.
@@ -356,12 +347,9 @@ class Segmenter:
         Args:
             fig_size: size of the figure
         &#34;&#34;&#34;
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
-        # add x- and y-axis labels
-        plt.xlabel(&#34;time&#34;, fontsize=14)
-        plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
-        plt.show()
+        _plot_detrended_signal(
+            x=self.x, y_de_trended=self.y_de_trended, fig_size=fig_size
+        )
 
     def calc_area_outside_trend(self) -&gt; float:
         &#34;&#34;&#34;Calculate area outside trend.
@@ -457,7 +445,16 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
             config: Configuration of the segmenter.
             n: Number of samples in a window.
         &#34;&#34;&#34;
+        self._handle_configuration(config, n)
+        self._handle_input_data(column=column, df=df, x=x, y=y)
+        self.y_de_trended: list | None = None
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
+    def _handle_configuration(self, config, n):
         # Handle configuration
         if config is None:
             # use default configuration if no configuration is provided
@@ -465,10 +462,13 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
             if n is not None:
                 # override default N in configuration if N is provided
                 self.config.N = n
-        if config is not None and n is not None:
-            # raise error
-            raise ValueError(&#34;Provide either config or N, not both.&#34;)
+        if config is not None:
+            if n is not None:
+                # raise error
+                raise ValueError(&#34;Provide either config or N, not both.&#34;)
+            self.config = config
 
+    def _handle_input_data(self, column, df, x, y):
         # --- Handle input data
         # error - most likely pandas dataframe as argument instead of kwarg
         if x is not None and not isinstance(x, list):
@@ -481,7 +481,6 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         # error - no input data provided
         if x is None and y is None and df is None:
             raise ValueError(&#34;Provide timeseries data: either x and y or df.&#34;)
-
         # error - ambiguous input data provided - both x,y and df provided
         if x is not None and y is not None and df is not None:
             raise ValueError(
@@ -491,23 +490,13 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         if x is not None and y is not None:
             self.x = x
             self.y = y
-
         # make warning if column provided but not dataframe
         if df is None and column is not None:
             warnings.warn(&#34;No dataframe provided, column argument will be ignored.&#34;)
-
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
             self.y = df[column].tolist()
-
-        self.y_de_trended: list | None = None
-
-        self.segments: SegmentList[Segment] | None = None
-        self.slope: float | None = None
-        self.offset: float | None = None
-        self.slopes_std: float | None = None
-        self.offsets_std: float | None = None
 
     def calculate_segments(self) -&gt; list[Segment]:
         &#34;&#34;&#34;Calculate segments with similar trend for the given timeserie.
@@ -531,21 +520,17 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         prev_fit = None
 
         segments = SegmentList()
-        s_start = 0
-        slopes = []
-        offsets = []
-        off = int(N * overlap_ratio)
-        if off == 0:
-            print(&#34;Overlap ratio is too small, setting it to 1&#34;)
-            print(&#34;N = &#34;, N)
-            print(&#34;overlap_ratio = &#34;, overlap_ratio)
-            off = 1
+
+        new_segment = {&#34;s_start&#34;: 0, &#34;slopes&#34;: [], &#34;offsets&#34;: [], &#34;starts&#34;: []}
+
+        off = self._set_offset(N, overlap_ratio)
+
         for start in range(0, len(self.x) - N, off):  # noqa: FKA01
-            fit = np.polyfit(
-                x=self.x[start : start + N], y=self.y[start : start + N], deg=1
-            )
-            slopes.append(fit[0])
-            offsets.append(fit[1])
+            end = start + N
+            fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
+            new_segment[&#34;slopes&#34;].append(fit[0])
+            new_segment[&#34;offsets&#34;].append(fit[1])
+            new_segment[&#34;starts&#34;].append(start)
 
             if prev_fit is not None:
                 # asses if the slope is similar to the previous one
@@ -558,43 +543,74 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
                 this_offset = float(fit[1])
                 r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
-                is_slope_different = r0 &gt;= alpha
-                is_offset_different = r1 &gt;= beta
+                is_slope_different = r0 &gt;= alpha if alpha is not None else False
+                is_offset_different = r1 &gt;= beta if beta is not None else False
+                new_segment[&#34;is_slope_different&#34;] = is_slope_different
+                new_segment[&#34;is_offset_different&#34;] = is_offset_different
 
-                if is_slope_different or is_offset_different:
-                    s_stop = _determine_trend_end_point(off, start)
-                    reason = self.describe_reason_for_new_segment(
-                        is_offset_different, is_slope_different
-                    )
-                    segments.append(
-                        Segment(
-                            start=int(s_start),
-                            stop=int(s_stop),
-                            slopes=slopes,
-                            offsets=offsets,
-                            reason_for_new_segment=reason,
-                        ),
-                    )
-                    s_start = s_stop + 1
-                    slopes = []
-                    offsets = []
+                new_segment = self._finish_segment_if_needed(
+                    offset=off, new_segment=new_segment, segments=segments, start=start
+                )
             prev_fit = fit
 
         # add last segment
-        segments.append(
-            Segment(
-                start=int(s_start),
-                stop=int(len(self.x)),
-                slopes=slopes,
-                offsets=offsets,
-            )
+        last_segment = Segment(
+            start=int(new_segment[&#34;s_start&#34;]),
+            stop=int(len(self.x)),
+            slopes=new_segment[&#34;slopes&#34;],
+            offsets=new_segment[&#34;offsets&#34;],
+            starts=new_segment[&#34;starts&#34;],
         )
+
+        segments.append(last_segment)
         self.segments = segments
+
+        # remove outstanding windows
+        last_segment.remove_outstanding_windows(self.config.N)
 
         # add extra information to the segments
         self._describe_segments()
 
         return segments
+
+    def _finish_segment_if_needed(self, offset, new_segment, segments, start):
+        need_to_finish_segment = (
+            new_segment[&#34;is_slope_different&#34;] or new_segment[&#34;is_offset_different&#34;]
+        )
+        if need_to_finish_segment:
+            s_stop = _determine_trend_end_point(offset, start)
+            reason = self.describe_reason_for_new_segment(
+                new_segment[&#34;is_offset_different&#34;], new_segment[&#34;is_slope_different&#34;]
+            )
+
+            segment = Segment(
+                start=int(new_segment[&#34;s_start&#34;]),
+                stop=int(s_stop),
+                slopes=new_segment[&#34;slopes&#34;],
+                offsets=new_segment[&#34;offsets&#34;],
+                starts=new_segment[&#34;starts&#34;],
+                reason_for_new_segment=reason,
+            )
+
+            # remove outstanding windows
+            segment.remove_outstanding_windows(self.config.N)
+
+            segments.append(segment)
+            new_segment[&#34;s_start&#34;] = s_stop + 1
+            new_segment[&#34;slopes&#34;] = []
+            new_segment[&#34;offsets&#34;] = []
+            new_segment[&#34;starts&#34;] = []
+        return new_segment
+
+    @staticmethod
+    def _set_offset(n, overlap_ratio):
+        offset = int(n * overlap_ratio)
+        if offset == 0:
+            print(&#34;Overlap ratio is too small, setting it to 1&#34;)
+            print(&#34;N = &#34;, n)
+            print(&#34;overlap_ratio = &#34;, overlap_ratio)
+            offset = 1
+        return offset
 
     @staticmethod
     def describe_reason_for_new_segment(
@@ -662,68 +678,28 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
             col: color of the segment
             fig_size: size of the figure
         &#34;&#34;&#34;
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
-        if isinstance(idx, int):
-            idx = [idx]
+        _plot_segment(obj=self, idx=idx, col=col, fig_size=fig_size)
 
-        for i in idx:
-            segment = self.segments[i]
-            start = segment.start
-            stop = segment.stop
+    def plot_segment_with_trendlines_no_context(
+        self,
+        idx: int,
+        fig_size: FigSize = (10, 5),
+    ) -&gt; None:
+        &#34;&#34;&#34;Plot segment with given index.
 
-            xx = self.x[start:stop]
-            yy = self.y[start:stop]
-            plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
-            plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
-            plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
-            # add x- and y-axis labels
-            plt.xlabel(&#34;time&#34;, fontsize=14)
-            plt.ylabel(&#34;value&#34;, fontsize=14)
-        plt.show()
+        Args:
+            idx: index of the segment or list of indices of segments
+            fig_size: size of the figure
+        &#34;&#34;&#34;
+        _plot_segment_with_trendlines_no_context(obj=self, idx=idx, fig_size=fig_size)
 
     def plot_segments(self, fig_size: FigSize = (8, 4)) -&gt; None:
         &#34;&#34;&#34;Plot all segments and linear trend lines.
 
         Args:
-            fig_size: size of the figure
+            fig_size: size of the figure e.g. (8, 4)
         &#34;&#34;&#34;
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
-        for segment in self.segments:
-            start = segment.start
-            stop = segment.stop
-            slopes = segment.slopes
-
-            xx = self.x[start:stop]
-            yy = self.y[start:stop]
-            fit = np.polyfit(x=xx, y=yy, deg=1)
-            fit_fn = np.poly1d(fit)
-
-            all_positive_slopes = all([v &gt;= 0 for v in slopes])
-            all_negatives_slopes = all([v &lt; 0 for v in slopes])
-
-            if fit[0] &gt;= 0 and all_positive_slopes:
-                col = &#34;g&#34;
-            elif fit[0] &lt; 0 and all_negatives_slopes:
-                col = &#34;r&#34;
-            else:
-                col = &#34;#A66&#34;
-
-            plt.vlines(start, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
-            plt.vlines(stop, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
-
-            plt.plot(
-                self.x[start:stop],
-                fit_fn(self.x[start:stop]),
-                color=f&#34;{col}&#34;,
-                linestyle=&#34;--&#34;,
-                linewidth=3,
-            )
-        # add x- and y-axis labels
-        plt.xlabel(&#34;time&#34;, fontsize=14)
-        plt.ylabel(&#34;value&#34;, fontsize=14)
-        plt.show()
+        _plot_segments(self, fig_size)
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -&gt; None:
         &#34;&#34;&#34;Plot de-trended signal.
@@ -731,12 +707,9 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         Args:
             fig_size: size of the figure
         &#34;&#34;&#34;
-        plt.subplots(figsize=fig_size)
-        plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
-        # add x- and y-axis labels
-        plt.xlabel(&#34;time&#34;, fontsize=14)
-        plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
-        plt.show()
+        _plot_detrended_signal(
+            x=self.x, y_de_trended=self.y_de_trended, fig_size=fig_size
+        )
 
     def calc_area_outside_trend(self) -&gt; float:
         &#34;&#34;&#34;Calculate area outside trend.
@@ -837,21 +810,17 @@ Normalized by the length of the signal.</p>
     prev_fit = None
 
     segments = SegmentList()
-    s_start = 0
-    slopes = []
-    offsets = []
-    off = int(N * overlap_ratio)
-    if off == 0:
-        print(&#34;Overlap ratio is too small, setting it to 1&#34;)
-        print(&#34;N = &#34;, N)
-        print(&#34;overlap_ratio = &#34;, overlap_ratio)
-        off = 1
+
+    new_segment = {&#34;s_start&#34;: 0, &#34;slopes&#34;: [], &#34;offsets&#34;: [], &#34;starts&#34;: []}
+
+    off = self._set_offset(N, overlap_ratio)
+
     for start in range(0, len(self.x) - N, off):  # noqa: FKA01
-        fit = np.polyfit(
-            x=self.x[start : start + N], y=self.y[start : start + N], deg=1
-        )
-        slopes.append(fit[0])
-        offsets.append(fit[1])
+        end = start + N
+        fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
+        new_segment[&#34;slopes&#34;].append(fit[0])
+        new_segment[&#34;offsets&#34;].append(fit[1])
+        new_segment[&#34;starts&#34;].append(start)
 
         if prev_fit is not None:
             # asses if the slope is similar to the previous one
@@ -864,38 +833,30 @@ Normalized by the length of the signal.</p>
             this_offset = float(fit[1])
             r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
-            is_slope_different = r0 &gt;= alpha
-            is_offset_different = r1 &gt;= beta
+            is_slope_different = r0 &gt;= alpha if alpha is not None else False
+            is_offset_different = r1 &gt;= beta if beta is not None else False
+            new_segment[&#34;is_slope_different&#34;] = is_slope_different
+            new_segment[&#34;is_offset_different&#34;] = is_offset_different
 
-            if is_slope_different or is_offset_different:
-                s_stop = _determine_trend_end_point(off, start)
-                reason = self.describe_reason_for_new_segment(
-                    is_offset_different, is_slope_different
-                )
-                segments.append(
-                    Segment(
-                        start=int(s_start),
-                        stop=int(s_stop),
-                        slopes=slopes,
-                        offsets=offsets,
-                        reason_for_new_segment=reason,
-                    ),
-                )
-                s_start = s_stop + 1
-                slopes = []
-                offsets = []
+            new_segment = self._finish_segment_if_needed(
+                offset=off, new_segment=new_segment, segments=segments, start=start
+            )
         prev_fit = fit
 
     # add last segment
-    segments.append(
-        Segment(
-            start=int(s_start),
-            stop=int(len(self.x)),
-            slopes=slopes,
-            offsets=offsets,
-        )
+    last_segment = Segment(
+        start=int(new_segment[&#34;s_start&#34;]),
+        stop=int(len(self.x)),
+        slopes=new_segment[&#34;slopes&#34;],
+        offsets=new_segment[&#34;offsets&#34;],
+        starts=new_segment[&#34;starts&#34;],
     )
+
+    segments.append(last_segment)
     self.segments = segments
+
+    # remove outstanding windows
+    last_segment.remove_outstanding_windows(self.config.N)
 
     # add extra information to the segments
     self._describe_segments()
@@ -923,12 +884,9 @@ Normalized by the length of the signal.</p>
     Args:
         fig_size: size of the figure
     &#34;&#34;&#34;
-    plt.subplots(figsize=fig_size)
-    plt.plot(self.x, self.y_de_trended, &#34;b-&#34;)  # noqa: FKA01
-    # add x- and y-axis labels
-    plt.xlabel(&#34;time&#34;, fontsize=14)
-    plt.ylabel(&#34;de-trended value&#34;, fontsize=14)
-    plt.show()</code></pre>
+    _plot_detrended_signal(
+        x=self.x, y_de_trended=self.y_de_trended, fig_size=fig_size
+    )</code></pre>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_segment"><code class="name flex">
@@ -962,25 +920,37 @@ Normalized by the length of the signal.</p>
         col: color of the segment
         fig_size: size of the figure
     &#34;&#34;&#34;
-    plt.subplots(figsize=fig_size)
-    plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
-    if isinstance(idx, int):
-        idx = [idx]
+    _plot_segment(obj=self, idx=idx, col=col, fig_size=fig_size)</code></pre>
+</details>
+</dd>
+<dt id="trend_classifier.segmentation.Segmenter.plot_segment_with_trendlines_no_context"><code class="name flex">
+<span>def <span class="ident">plot_segment_with_trendlines_no_context</span></span>(<span>self, idx: int, fig_size: tuple[typing.Union[float, int], typing.Union[float, int]] = (10, 5)) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot segment with given index.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>idx</code></strong></dt>
+<dd>index of the segment or list of indices of segments</dd>
+<dt><strong><code>fig_size</code></strong></dt>
+<dd>size of the figure</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_segment_with_trendlines_no_context(
+    self,
+    idx: int,
+    fig_size: FigSize = (10, 5),
+) -&gt; None:
+    &#34;&#34;&#34;Plot segment with given index.
 
-    for i in idx:
-        segment = self.segments[i]
-        start = segment.start
-        stop = segment.stop
-
-        xx = self.x[start:stop]
-        yy = self.y[start:stop]
-        plt.plot(xx, yy, color=col, linestyle=&#34;-&#34;, linewidth=2)
-        plt.scatter(xx[0], yy[0], color=&#34;k&#34;, s=10)
-        plt.scatter(xx[-1], yy[-1], color=&#34;k&#34;, s=10)
-        # add x- and y-axis labels
-        plt.xlabel(&#34;time&#34;, fontsize=14)
-        plt.ylabel(&#34;value&#34;, fontsize=14)
-    plt.show()</code></pre>
+    Args:
+        idx: index of the segment or list of indices of segments
+        fig_size: size of the figure
+    &#34;&#34;&#34;
+    _plot_segment_with_trendlines_no_context(obj=self, idx=idx, fig_size=fig_size)</code></pre>
 </details>
 </dd>
 <dt id="trend_classifier.segmentation.Segmenter.plot_segments"><code class="name flex">
@@ -991,7 +961,7 @@ Normalized by the length of the signal.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>fig_size</code></strong></dt>
-<dd>size of the figure</dd>
+<dd>size of the figure e.g. (8, 4)</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -1001,44 +971,9 @@ Normalized by the length of the signal.</p>
     &#34;&#34;&#34;Plot all segments and linear trend lines.
 
     Args:
-        fig_size: size of the figure
+        fig_size: size of the figure e.g. (8, 4)
     &#34;&#34;&#34;
-    plt.subplots(figsize=fig_size)
-    plt.plot(self.x, self.y, color=&#34;#AAD&#34;, linestyle=&#34;solid&#34;)
-    for segment in self.segments:
-        start = segment.start
-        stop = segment.stop
-        slopes = segment.slopes
-
-        xx = self.x[start:stop]
-        yy = self.y[start:stop]
-        fit = np.polyfit(x=xx, y=yy, deg=1)
-        fit_fn = np.poly1d(fit)
-
-        all_positive_slopes = all([v &gt;= 0 for v in slopes])
-        all_negatives_slopes = all([v &lt; 0 for v in slopes])
-
-        if fit[0] &gt;= 0 and all_positive_slopes:
-            col = &#34;g&#34;
-        elif fit[0] &lt; 0 and all_negatives_slopes:
-            col = &#34;r&#34;
-        else:
-            col = &#34;#A66&#34;
-
-        plt.vlines(start, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
-        plt.vlines(stop, min(self.y), max(self.y), &#34;#CCC&#34;)  # noqa: FKA01
-
-        plt.plot(
-            self.x[start:stop],
-            fit_fn(self.x[start:stop]),
-            color=f&#34;{col}&#34;,
-            linestyle=&#34;--&#34;,
-            linewidth=3,
-        )
-    # add x- and y-axis labels
-    plt.xlabel(&#34;time&#34;, fontsize=14)
-    plt.ylabel(&#34;value&#34;, fontsize=14)
-    plt.show()</code></pre>
+    _plot_segments(self, fig_size)</code></pre>
 </details>
 </dd>
 </dl>
@@ -1067,6 +1002,7 @@ Normalized by the length of the signal.</p>
 <li><code><a title="trend_classifier.segmentation.Segmenter.describe_reason_for_new_segment" href="#trend_classifier.segmentation.Segmenter.describe_reason_for_new_segment">describe_reason_for_new_segment</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.plot_detrended_signal" href="#trend_classifier.segmentation.Segmenter.plot_detrended_signal">plot_detrended_signal</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.plot_segment" href="#trend_classifier.segmentation.Segmenter.plot_segment">plot_segment</a></code></li>
+<li><code><a title="trend_classifier.segmentation.Segmenter.plot_segment_with_trendlines_no_context" href="#trend_classifier.segmentation.Segmenter.plot_segment_with_trendlines_no_context">plot_segment_with_trendlines_no_context</a></code></li>
 <li><code><a title="trend_classifier.segmentation.Segmenter.plot_segments" href="#trend_classifier.segmentation.Segmenter.plot_segments">plot_segments</a></code></li>
 </ul>
 </li>

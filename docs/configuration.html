@@ -39,9 +39,9 @@ class Config(BaseModel):
     overlap_ratio: float = 0.33
 
     # deviation for slope (RAE -&gt; 2, AE -&gt; 100)
-    alpha: float = 2
+    alpha: float | None = 2
     # deviation for offset (RAE -&gt; 2, AE -&gt; 0.25)
-    beta: float = 2
+    beta: float | None = 2
     metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
     metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
 
@@ -64,6 +64,16 @@ CONFIG_REL = Config(
     metrics_alpha=Metrics.RELATIVE_ABSOLUTE_ERROR,
     metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
 )
+&#34;&#34;&#34;Configuration with using relative absolute error for alpha.&#34;&#34;&#34;
+
+CONFIG_REL_SLOPE_ONLY = Config(
+    N=40,
+    overlap_ratio=0.33,
+    alpha=2,
+    beta=None,
+    metrics_alpha=Metrics.RELATIVE_ABSOLUTE_ERROR,
+    metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
+)
 &#34;&#34;&#34;Configuration with using relative absolute error for alpha.&#34;&#34;&#34;</code></pre>
 </details>
 </section>
@@ -77,6 +87,10 @@ CONFIG_REL = Config(
 <div class="desc"><p>Configuration with using absolute error for alpha.</p></div>
 </dd>
 <dt id="trend_classifier.configuration.CONFIG_REL"><code class="name">var <span class="ident">CONFIG_REL</span></code></dt>
+<dd>
+<div class="desc"><p>Configuration with using relative absolute error for alpha.</p></div>
+</dd>
+<dt id="trend_classifier.configuration.CONFIG_REL_SLOPE_ONLY"><code class="name">var <span class="ident">CONFIG_REL_SLOPE_ONLY</span></code></dt>
 <dd>
 <div class="desc"><p>Configuration with using relative absolute error for alpha.</p></div>
 </dd>
@@ -106,9 +120,9 @@ CONFIG_REL = Config(
     overlap_ratio: float = 0.33
 
     # deviation for slope (RAE -&gt; 2, AE -&gt; 100)
-    alpha: float = 2
+    alpha: float | None = 2
     # deviation for offset (RAE -&gt; 2, AE -&gt; 0.25)
-    beta: float = 2
+    beta: float | None = 2
     metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
     metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR</code></pre>
 </details>
@@ -123,11 +137,11 @@ CONFIG_REL = Config(
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="trend_classifier.configuration.Config.alpha"><code class="name">var <span class="ident">alpha</span> : float</code></dt>
+<dt id="trend_classifier.configuration.Config.alpha"><code class="name">var <span class="ident">alpha</span> : float | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="trend_classifier.configuration.Config.beta"><code class="name">var <span class="ident">beta</span> : float</code></dt>
+<dt id="trend_classifier.configuration.Config.beta"><code class="name">var <span class="ident">beta</span> : float | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -163,6 +177,7 @@ CONFIG_REL = Config(
 <ul class="">
 <li><code><a title="trend_classifier.configuration.CONFIG_ABS" href="#trend_classifier.configuration.CONFIG_ABS">CONFIG_ABS</a></code></li>
 <li><code><a title="trend_classifier.configuration.CONFIG_REL" href="#trend_classifier.configuration.CONFIG_REL">CONFIG_REL</a></code></li>
+<li><code><a title="trend_classifier.configuration.CONFIG_REL_SLOPE_ONLY" href="#trend_classifier.configuration.CONFIG_REL_SLOPE_ONLY">CONFIG_REL_SLOPE_ONLY</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>

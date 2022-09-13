@@ -28,7 +28,12 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">&#34;&#34;&#34;Module with pydantic model of Segment and helper datastructure - SegmentList.&#34;&#34;&#34;
+import logging
+from copy import deepcopy
+
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class Segment(BaseModel):
@@ -46,6 +51,9 @@ class Segment(BaseModel):
 
     offsets: list[float] = []
     &#34;&#34;&#34;List of offsets of linear trends in windows in the segment.&#34;&#34;&#34;
+
+    starts: list[int] = []
+    &#34;&#34;&#34;List of start indices of windows in the segment.&#34;&#34;&#34;
 
     # --- optional attributes with default values
     slope: float = 0
@@ -82,6 +90,30 @@ class Segment(BaseModel):
 
         return s1 + s2 + s3 + s4 + s5
 
+    def remove_outstanding_windows(self, n):
+        new_slopes = deepcopy(self.slopes)
+        new_offsets = deepcopy(self.offsets)
+        new_starts = deepcopy(self.starts)
+        for window_start in self.starts:
+            n_windows = len(new_starts)
+            window_end = window_start + n
+            is_outstanding = window_end &gt; self.stop
+
+            if n_windows &gt; 1 and is_outstanding:
+                new_slopes.remove(self.slopes[self.starts.index(window_start)])
+                new_offsets.remove(self.offsets[self.starts.index(window_start)])
+                new_starts.remove(window_start)
+                logger.debug(  # noqa: FKA01
+                    &#34;Removed window %f - %f.&#34;, window_start, window_start + n
+                )
+            else:
+                logger.debug(  # noqa: FKA01
+                    &#34;Keeping window %f - %f.&#34;, window_start, window_start + n
+                )
+        self.slopes = new_slopes
+        self.offsets = new_offsets
+        self.starts = new_starts
+
 
 class SegmentList(list):
     &#34;&#34;&#34;List of segments. Each segment group samples with similar trend.
@@ -102,7 +134,24 @@ class SegmentList(list):
             raise ImportError(
                 &#34;Pandas is not installed. Install it with `pip install pandas`.&#34;
             )
-        return pd.DataFrame([s.__dict__ for s in self])</code></pre>
+        df = pd.DataFrame([s.__dict__ for s in self])
+        # reorder columns
+        df = df[
+            [
+                &#34;start&#34;,
+                &#34;stop&#34;,
+                &#34;slope&#34;,
+                &#34;offset&#34;,
+                &#34;slopes_std&#34;,
+                &#34;offsets_std&#34;,
+                &#34;std&#34;,
+                &#34;span&#34;,
+                &#34;reason_for_new_segment&#34;,
+                &#34;slopes&#34;,
+                &#34;offsets&#34;,
+            ]
+        ]
+        return df</code></pre>
 </details>
 </section>
 <section>
@@ -142,6 +191,9 @@ class SegmentList(list):
     offsets: list[float] = []
     &#34;&#34;&#34;List of offsets of linear trends in windows in the segment.&#34;&#34;&#34;
 
+    starts: list[int] = []
+    &#34;&#34;&#34;List of start indices of windows in the segment.&#34;&#34;&#34;
+
     # --- optional attributes with default values
     slope: float = 0
     &#34;&#34;&#34;Slope of the segment.&#34;&#34;&#34;
@@ -175,7 +227,31 @@ class SegmentList(list):
         s4 = f&#34;slopes={self.slopes}, offsets={self.offsets}, slopes_std={self.slopes_std}, &#34;
         s5 = f&#34;offsets_std={self.offsets_std})&#34;
 
-        return s1 + s2 + s3 + s4 + s5</code></pre>
+        return s1 + s2 + s3 + s4 + s5
+
+    def remove_outstanding_windows(self, n):
+        new_slopes = deepcopy(self.slopes)
+        new_offsets = deepcopy(self.offsets)
+        new_starts = deepcopy(self.starts)
+        for window_start in self.starts:
+            n_windows = len(new_starts)
+            window_end = window_start + n
+            is_outstanding = window_end &gt; self.stop
+
+            if n_windows &gt; 1 and is_outstanding:
+                new_slopes.remove(self.slopes[self.starts.index(window_start)])
+                new_offsets.remove(self.offsets[self.starts.index(window_start)])
+                new_starts.remove(window_start)
+                logger.debug(  # noqa: FKA01
+                    &#34;Removed window %f - %f.&#34;, window_start, window_start + n
+                )
+            else:
+                logger.debug(  # noqa: FKA01
+                    &#34;Keeping window %f - %f.&#34;, window_start, window_start + n
+                )
+        self.slopes = new_slopes
+        self.offsets = new_offsets
+        self.starts = new_starts</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -221,6 +297,10 @@ Indicator if the volatility of the segment is high or low.</p></div>
 <dd>
 <div class="desc"><p>Start index of the segment.</p></div>
 </dd>
+<dt id="trend_classifier.segment.Segment.starts"><code class="name">var <span class="ident">starts</span> : list[int]</code></dt>
+<dd>
+<div class="desc"><p>List of start indices of windows in the segment.</p></div>
+</dd>
 <dt id="trend_classifier.segment.Segment.std"><code class="name">var <span class="ident">std</span> : float</code></dt>
 <dd>
 <div class="desc"><p>Standard deviation of the samples in the segment with removed trend.</p></div>
@@ -228,6 +308,43 @@ Indicator if the volatility of the segment is high or low.</p></div>
 <dt id="trend_classifier.segment.Segment.stop"><code class="name">var <span class="ident">stop</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Stop index of the segment.</p></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="trend_classifier.segment.Segment.remove_outstanding_windows"><code class="name flex">
+<span>def <span class="ident">remove_outstanding_windows</span></span>(<span>self, n)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def remove_outstanding_windows(self, n):
+    new_slopes = deepcopy(self.slopes)
+    new_offsets = deepcopy(self.offsets)
+    new_starts = deepcopy(self.starts)
+    for window_start in self.starts:
+        n_windows = len(new_starts)
+        window_end = window_start + n
+        is_outstanding = window_end &gt; self.stop
+
+        if n_windows &gt; 1 and is_outstanding:
+            new_slopes.remove(self.slopes[self.starts.index(window_start)])
+            new_offsets.remove(self.offsets[self.starts.index(window_start)])
+            new_starts.remove(window_start)
+            logger.debug(  # noqa: FKA01
+                &#34;Removed window %f - %f.&#34;, window_start, window_start + n
+            )
+        else:
+            logger.debug(  # noqa: FKA01
+                &#34;Keeping window %f - %f.&#34;, window_start, window_start + n
+            )
+    self.slopes = new_slopes
+    self.offsets = new_offsets
+    self.starts = new_starts</code></pre>
+</details>
 </dd>
 </dl>
 </dd>
@@ -262,7 +379,24 @@ can be added here.</p></div>
             raise ImportError(
                 &#34;Pandas is not installed. Install it with `pip install pandas`.&#34;
             )
-        return pd.DataFrame([s.__dict__ for s in self])</code></pre>
+        df = pd.DataFrame([s.__dict__ for s in self])
+        # reorder columns
+        df = df[
+            [
+                &#34;start&#34;,
+                &#34;stop&#34;,
+                &#34;slope&#34;,
+                &#34;offset&#34;,
+                &#34;slopes_std&#34;,
+                &#34;offsets_std&#34;,
+                &#34;std&#34;,
+                &#34;span&#34;,
+                &#34;reason_for_new_segment&#34;,
+                &#34;slopes&#34;,
+                &#34;offsets&#34;,
+            ]
+        ]
+        return df</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -293,7 +427,24 @@ can be added here.</p></div>
         raise ImportError(
             &#34;Pandas is not installed. Install it with `pip install pandas`.&#34;
         )
-    return pd.DataFrame([s.__dict__ for s in self])</code></pre>
+    df = pd.DataFrame([s.__dict__ for s in self])
+    # reorder columns
+    df = df[
+        [
+            &#34;start&#34;,
+            &#34;stop&#34;,
+            &#34;slope&#34;,
+            &#34;offset&#34;,
+            &#34;slopes_std&#34;,
+            &#34;offsets_std&#34;,
+            &#34;std&#34;,
+            &#34;span&#34;,
+            &#34;reason_for_new_segment&#34;,
+            &#34;slopes&#34;,
+            &#34;offsets&#34;,
+        ]
+    ]
+    return df</code></pre>
 </details>
 </dd>
 </dl>
@@ -321,11 +472,13 @@ can be added here.</p></div>
 <li><code><a title="trend_classifier.segment.Segment.offsets" href="#trend_classifier.segment.Segment.offsets">offsets</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.offsets_std" href="#trend_classifier.segment.Segment.offsets_std">offsets_std</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.reason_for_new_segment" href="#trend_classifier.segment.Segment.reason_for_new_segment">reason_for_new_segment</a></code></li>
+<li><code><a title="trend_classifier.segment.Segment.remove_outstanding_windows" href="#trend_classifier.segment.Segment.remove_outstanding_windows">remove_outstanding_windows</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.slope" href="#trend_classifier.segment.Segment.slope">slope</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.slopes" href="#trend_classifier.segment.Segment.slopes">slopes</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.slopes_std" href="#trend_classifier.segment.Segment.slopes_std">slopes_std</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.span" href="#trend_classifier.segment.Segment.span">span</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.start" href="#trend_classifier.segment.Segment.start">start</a></code></li>
+<li><code><a title="trend_classifier.segment.Segment.starts" href="#trend_classifier.segment.Segment.starts">starts</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.std" href="#trend_classifier.segment.Segment.std">std</a></code></li>
 <li><code><a title="trend_classifier.segment.Segment.stop" href="#trend_classifier.segment.Segment.stop">stop</a></code></li>
 </ul>
