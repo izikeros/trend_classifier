@@ -10,9 +10,9 @@ class Config(BaseModel):
     overlap_ratio: float = 0.33
 
     # deviation for slope (RAE -> 2, AE -> 100)
-    alpha: float = 2
+    alpha: float | None = 2
     # deviation for offset (RAE -> 2, AE -> 0.25)
-    beta: float = 2
+    beta: float | None = 2
     metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
     metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
 
