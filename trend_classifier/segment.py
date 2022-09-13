@@ -1,5 +1,10 @@
 """Module with pydantic model of Segment and helper datastructure - SegmentList."""
+import logging
+from copy import deepcopy
+
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class Segment(BaseModel):
@@ -17,6 +22,9 @@ class Segment(BaseModel):
 
     offsets: list[float] = []
     """List of offsets of linear trends in windows in the segment."""
+
+    starts: list[int] = []
+    """List of start indices of windows in the segment."""
 
     # --- optional attributes with default values
     slope: float = 0
@@ -52,6 +60,30 @@ class Segment(BaseModel):
         s5 = f"offsets_std={self.offsets_std})"
 
         return s1 + s2 + s3 + s4 + s5
+
+    def remove_outstanding_windows(self, n):
+        new_slopes = deepcopy(self.slopes)
+        new_offsets = deepcopy(self.offsets)
+        new_starts = deepcopy(self.starts)
+        for window_start in self.starts:
+            n_windows = len(new_starts)
+            window_end = window_start + n
+            is_outstanding = window_end > self.stop
+
+            if n_windows > 1 and is_outstanding:
+                new_slopes.remove(self.slopes[self.starts.index(window_start)])
+                new_offsets.remove(self.offsets[self.starts.index(window_start)])
+                new_starts.remove(window_start)
+                logger.debug(  # noqa: FKA01
+                    "Removed window %f - %f.", window_start, window_start + n
+                )
+            else:
+                logger.debug(  # noqa: FKA01
+                    "Keeping window %f - %f.", window_start, window_start + n
+                )
+        self.slopes = new_slopes
+        self.offsets = new_offsets
+        self.starts = new_starts
 
 
 class SegmentList(list):

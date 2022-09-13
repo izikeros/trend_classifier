@@ -130,7 +130,7 @@ class Segmenter:
 
         segments = SegmentList()
 
-        new_segment = {"s_start": 0, "slopes": [], "offsets": []}
+        new_segment = {"s_start": 0, "slopes": [], "offsets": [], "starts": []}
 
         off = self._set_offset(N, overlap_ratio)
 
@@ -140,6 +140,7 @@ class Segmenter:
             )
             new_segment["slopes"].append(fit[0])
             new_segment["offsets"].append(fit[1])
+            new_segment["starts"].append(start)
 
             if prev_fit is not None:
                 # asses if the slope is similar to the previous one
@@ -161,15 +162,19 @@ class Segmenter:
             prev_fit = fit
 
         # add last segment
-        segments.append(
-            Segment(
-                start=int(new_segment["s_start"]),
-                stop=int(len(self.x)),
-                slopes=new_segment["slopes"],
-                offsets=new_segment["offsets"],
-            )
+        last_segment = Segment(
+            start=int(new_segment["s_start"]),
+            stop=int(len(self.x)),
+            slopes=new_segment["slopes"],
+            offsets=new_segment["offsets"],
+            starts=new_segment["starts"],
         )
+
+        segments.append(last_segment)
         self.segments = segments
+
+        # remove outstanding windows
+        last_segment.remove_outstanding_windows(self.config.N)
 
         # add extra information to the segments
         self._describe_segments()
@@ -185,18 +190,24 @@ class Segmenter:
             reason = self.describe_reason_for_new_segment(
                 new_segment["is_offset_different"], new_segment["is_slope_different"]
             )
-            segments.append(
-                Segment(
-                    start=int(new_segment["s_start"]),
-                    stop=int(s_stop),
-                    slopes=new_segment["slopes"],
-                    offsets=new_segment["offsets"],
-                    reason_for_new_segment=reason,
-                ),
+
+            segment = Segment(
+                start=int(new_segment["s_start"]),
+                stop=int(s_stop),
+                slopes=new_segment["slopes"],
+                offsets=new_segment["offsets"],
+                starts=new_segment["starts"],
+                reason_for_new_segment=reason,
             )
+
+            # remove outstanding windows
+            segment.remove_outstanding_windows(self.config.N)
+
+            segments.append(segment)
             new_segment["s_start"] = s_stop + 1
             new_segment["slopes"] = []
             new_segment["offsets"] = []
+            new_segment["starts"] = []
         return new_segment
 
     @staticmethod
