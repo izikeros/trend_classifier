@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trend-classifier"
-version = "0.1.6"
+version = "0.1.7"
 description = "Package for automated signal segmentation, trend classification and analysis."
 authors = [
     "Krystian Safjan <ksafjan@gmail.com>",
