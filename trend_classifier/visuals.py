@@ -97,3 +97,48 @@ def _plot_segment(
         plt.xlabel("time", fontsize=14)
         plt.ylabel("value", fontsize=14)
     plt.show()
+
+
+def _plot_segment_with_trendlines_no_context(
+    obj,
+    idx: list[int] | int,
+    signal_color: str = "#ccc",
+    trendline_color: str = "red",
+    fig_size: FigSize = (10, 5),
+) -> None:
+    """Plot segment with given index or multiple segments with given indices.
+
+    Args:
+        idx: index of the segment or list of indices of segments
+        col: color of the segment
+        fig_size: size of the figure
+    """
+
+    segment = obj.segments[idx]
+    segment_start = segment.start
+    segment_stop = segment.stop
+
+    xx = obj.x[segment_start:segment_stop]
+    yy = obj.y[segment_start:segment_stop]
+
+    plt.subplots(figsize=fig_size)
+    plt.plot(xx, yy, color=signal_color, linestyle="-", linewidth=2)
+
+    for i, (start, slope, offset) in enumerate(
+        zip(segment.starts, segment.slopes, segment.offsets)  # noqa: FKA01
+    ):
+        x = obj.x[start : obj.config.N + start]
+        y = slope * np.array(x) + offset
+        plt.plot(
+            x,
+            y,
+            # color=trendline_color,
+            linestyle="--",
+            linewidth=2,
+            label=f"trendline {i}",
+        )
+    # add x- and y-axis labels
+    plt.xlabel("time", fontsize=14)
+    plt.ylabel("value", fontsize=14)
+    plt.legend()
+    plt.show()

@@ -8,6 +8,7 @@ from trend_classifier.segment import SegmentList
 from trend_classifier.types import FigSize
 from trend_classifier.visuals import _plot_detrended_signal
 from trend_classifier.visuals import _plot_segment
+from trend_classifier.visuals import _plot_segment_with_trendlines_no_context
 from trend_classifier.visuals import _plot_segments
 
 
@@ -287,6 +288,21 @@ class Segmenter:
             fig_size: size of the figure
         """
         _plot_segment(obj=self, idx=idx, col=col, fig_size=fig_size)
+
+    def plot_segment_with_trendlines_no_context(
+        self,
+        idx: int,
+        col: str = "red",
+        fig_size: FigSize = (10, 5),
+    ) -> None:
+        """Plot segment with given index
+
+        Args:
+            idx: index of the segment or list of indices of segments
+            col: color of the segment
+            fig_size: size of the figure
+        """
+        _plot_segment_with_trendlines_no_context(obj=self, idx=idx, fig_size=fig_size)
 
     def plot_segments(self, fig_size: FigSize = (8, 4)) -> None:
         """Plot all segments and linear trend lines.
