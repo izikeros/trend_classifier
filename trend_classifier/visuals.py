@@ -103,17 +103,14 @@ def _plot_segment_with_trendlines_no_context(
     obj,
     idx: list[int] | int,
     signal_color: str = "#ccc",
-    trendline_color: str = "red",
     fig_size: FigSize = (10, 5),
 ) -> None:
     """Plot segment with given index or multiple segments with given indices.
 
     Args:
         idx: index of the segment or list of indices of segments
-        col: color of the segment
         fig_size: size of the figure
     """
-
     segment = obj.segments[idx]
     segment_start = segment.start
     segment_stop = segment.stop
@@ -132,7 +129,6 @@ def _plot_segment_with_trendlines_no_context(
         plt.plot(
             x,
             y,
-            # color=trendline_color,
             linestyle="--",
             linewidth=2,
             label=f"trendline {i}",
