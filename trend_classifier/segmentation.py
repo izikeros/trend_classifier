@@ -30,7 +30,7 @@ def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> flo
 
     """
     if metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        return abs(a - b) / a
+        return abs(a - b) / abs(a)
     if metrics == Metrics.ABSOLUTE_ERROR:
         return abs(a - b)
 
@@ -74,9 +74,11 @@ class Segmenter:
             if n is not None:
                 # override default N in configuration if N is provided
                 self.config.N = n
-        if config is not None and n is not None:
-            # raise error
-            raise ValueError("Provide either config or N, not both.")
+        if config is not None:
+            if n is not None:
+                # raise error
+                raise ValueError("Provide either config or N, not both.")
+            self.config = config
 
     def _handle_input_data(self, column, df, x, y):
         # --- Handle input data
@@ -136,9 +138,8 @@ class Segmenter:
         off = self._set_offset(N, overlap_ratio)
 
         for start in range(0, len(self.x) - N, off):  # noqa: FKA01
-            fit = np.polyfit(
-                x=self.x[start : start + N], y=self.y[start : start + N], deg=1
-            )
+            end = start + N
+            fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
             new_segment["slopes"].append(fit[0])
             new_segment["offsets"].append(fit[1])
             new_segment["starts"].append(start)
@@ -154,8 +155,10 @@ class Segmenter:
                 this_offset = float(fit[1])
                 r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
 
-                new_segment["is_slope_different"] = r0 >= alpha
-                new_segment["is_offset_different"] = r1 >= beta
+                is_slope_different = r0 >= alpha if alpha is not None else False
+                is_offset_different = r1 >= beta if beta is not None else False
+                new_segment["is_slope_different"] = is_slope_different
+                new_segment["is_offset_different"] = is_offset_different
 
                 new_segment = self._finish_segment_if_needed(
                     offset=off, new_segment=new_segment, segments=segments, start=start
@@ -213,13 +216,13 @@ class Segmenter:
 
     @staticmethod
     def _set_offset(n, overlap_ratio):
-        off = int(n * overlap_ratio)
-        if off == 0:
+        offset = int(n * overlap_ratio)
+        if offset == 0:
             print("Overlap ratio is too small, setting it to 1")
             print("N = ", n)
             print("overlap_ratio = ", overlap_ratio)
-            off = 1
-        return off
+            offset = 1
+        return offset
 
     @staticmethod
     def describe_reason_for_new_segment(
@@ -292,14 +295,12 @@ class Segmenter:
     def plot_segment_with_trendlines_no_context(
         self,
         idx: int,
-        col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:
-        """Plot segment with given index
+        """Plot segment with given index.
 
         Args:
             idx: index of the segment or list of indices of segments
-            col: color of the segment
             fig_size: size of the figure
         """
         _plot_segment_with_trendlines_no_context(obj=self, idx=idx, fig_size=fig_size)
