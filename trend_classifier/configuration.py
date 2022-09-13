@@ -36,3 +36,13 @@ CONFIG_REL = Config(
     metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
 )
 """Configuration with using relative absolute error for alpha."""
+
+CONFIG_REL_SLOPE_ONLY = Config(
+    N=40,
+    overlap_ratio=0.33,
+    alpha=2,
+    beta=None,
+    metrics_alpha=Metrics.RELATIVE_ABSOLUTE_ERROR,
+    metrics_beta=Metrics.RELATIVE_ABSOLUTE_ERROR,
+)
+"""Configuration with using relative absolute error for alpha."""
