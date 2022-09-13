@@ -72,3 +72,16 @@ class TestSegmenterPlotting:
     @patch("matplotlib.pyplot.show")
     def test_plot_detrended_signal(self, mock_show):
         self.seg.plot_detrended_signal()
+
+
+@pytest.mark.skip(reason="Use for manual testing")
+def test_real_data():
+    import yfinance as yf
+    from trend_classifier import Segmenter
+
+    df = yf.download(
+        "AAPL", start="2018-09-15", end="2022-09-06", interval="1d", progress=False
+    )
+
+    seg = Segmenter(df=df, column="Adj Close", n=20)
+    seg.calculate_segments()
