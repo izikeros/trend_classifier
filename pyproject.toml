@@ -1,15 +1,14 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "trend-classifier"
-version = "0.1.7"
+version = "0.1.8"
 description = "Package for automated signal segmentation, trend classification and analysis."
-authors = [
-    "Krystian Safjan <ksafjan@gmail.com>",
-]
+authors = ["Krystian Safjan <ksafjan@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/izikeros/trend_classifier"
-repository = "https://github.com/izikeros/trend_classifier"
-documentation = "https://github.com/izikeros/trend_classifier"
 keywords = ["trend", "timeseries", "classification", "segmentation", "analysis", "algotrading", "finance"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -53,10 +52,9 @@ pytest = "^7.1.2"
 pytest-icdiff = "^0.6"
 pytest-clarity = "^1.0.1"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-
 [tool.scriv]
 format = "md"
+
+[project.urls]
+"Source" = "https://github.com/izikeros/trend_classifier"
+"Bug Tracker" = "https://github.com/izikeros/trend_classifier/issues"
