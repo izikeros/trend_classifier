@@ -1,4 +1,6 @@
 """Module with configuration class for Segmenter and sample configurations."""
+from typing import Optional
+
 from pydantic import BaseModel
 from trend_classifier.models import Metrics
 
@@ -10,9 +12,9 @@ class Config(BaseModel):
     overlap_ratio: float = 0.33
 
     # deviation for slope (RAE -> 2, AE -> 100)
-    alpha: float | None = 2
+    alpha: Optional[float] = 2
     # deviation for offset (RAE -> 2, AE -> 0.25)
-    beta: float | None = 2
+    beta: Optional[float] = 2
     metrics_alpha: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
     metrics_beta: Metrics = Metrics.RELATIVE_ABSOLUTE_ERROR
 

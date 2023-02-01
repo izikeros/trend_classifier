@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from matplotlib import pyplot as plt
 from trend_classifier.types import FigSize
@@ -67,7 +69,7 @@ def _plot_segments(obj, fig_size: FigSize = (8, 4)) -> None:
 
 def _plot_segment(
     obj,
-    idx: list[int] | int,
+    idx: Union[list[int], int],
     col: str = "red",
     fig_size: FigSize = (10, 5),
 ) -> None:
@@ -101,7 +103,7 @@ def _plot_segment(
 
 def _plot_segment_with_trendlines_no_context(
     obj,
-    idx: list[int] | int,
+    idx: Union[list[int], int],
     signal_color: str = "#ccc",
     fig_size: FigSize = (10, 5),
 ) -> None:

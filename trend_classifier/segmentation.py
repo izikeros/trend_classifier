@@ -1,4 +1,6 @@
 import warnings
+from typing import Optional
+from typing import Union
 
 import numpy as np
 from trend_classifier.configuration import Config
@@ -40,12 +42,12 @@ class Segmenter:
 
     def __init__(
         self,
-        x: list[int] | None = None,
-        y: list[int] | None = None,
+        x: Optional[list[int]] = None,
+        y: Optional[list[int]] = None,
         df=None,
-        column: str | None = "Adj Close",
-        config: Config | None = None,
-        n: int | None = None,
+        column: Optional[str] = "Adj Close",
+        config: Optional[Config] = None,
+        n: Optional[int] = None,
     ):
         """Initialize the segmenter.
 
@@ -59,12 +61,12 @@ class Segmenter:
         """
         self._handle_configuration(config, n)
         self._handle_input_data(column=column, df=df, x=x, y=y)
-        self.y_de_trended: list | None = None
-        self.segments: SegmentList[Segment] | None = None
-        self.slope: float | None = None
-        self.offset: float | None = None
-        self.slopes_std: float | None = None
-        self.offsets_std: float | None = None
+        self.y_de_trended: Optional[list] = None
+        self.segments: Optional[SegmentList[Segment]] = None
+        self.slope: Optional[float] = None
+        self.offset: Optional[float] = None
+        self.slopes_std: Optional[float] = None
+        self.offsets_std: Optional[float] = None
 
     def _handle_configuration(self, config, n):
         # Handle configuration
@@ -279,7 +281,7 @@ class Segmenter:
 
     def plot_segment(
         self,
-        idx: list[int] | int,
+        idx: Union[list[int], int],
         col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:
