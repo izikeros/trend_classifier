@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.8,<=3.12"
 matplotlib = "^3.5.3"
 pydantic = "^1.10.1"
 numpy = "^1.23.2"
@@ -46,6 +46,7 @@ pandas = "^1.4.3"
 pip-upgrader = "^1.4.15"
 pytest-sugar = "^0.9.5"
 pytest-cov = "^3.0.0"
+pip-upgrade = "^0.0.6"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"

@@ -1,2 +1,2 @@
-mypy==0.971
+mypy==0.991
 data-science-types==0.2.23
