@@ -82,7 +82,8 @@ export results to tabular format (pandas DataFrame):
 seg.segments.to_dataframe()
 ```
 ![](https://github.com/izikeros/trend_classifier/blob/main/img/to_dataframe.jpg?raw=true)
-(not all columns are shown)
+
+(**NOTE:** for clarity reasons, not all columns are shown in the screenshot above)
 
 ## License
 
