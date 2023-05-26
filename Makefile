@@ -60,7 +60,7 @@ reqs:
 
 ## Upgrade package versions for tox
 tox_reqs_update:
-	pip-upgrade tox-reqs/all.txt
+	pip-upgrade tox-reqs/all.txt --skip-package-installation
 
 ## Upgrade all (requirements used in tox envs, pyproject dependencies, pre-commit hooks)
 update: tox_reqs_update
