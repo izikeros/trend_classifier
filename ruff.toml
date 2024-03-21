@@ -1,0 +1,79 @@
+exclude = [
+    ".tox",
+    ".git",
+    "docs",
+    "venv",
+    ".venv",
+    "*.pyc",
+    ".git",
+    "__pycache__",
+]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume minimal supported Python 3.8
+target-version = "py38"
+
+[lint]
+ignore = [
+#    "C",    # mccabe
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in __init__
+    "F405", # 'module' may be undefined, or defined from star imports
+    "N802", # function name should be lowercase
+    "E501", # line too long
+]
+select = [
+    # flake8-comprehensions
+    "C4",
+    # mccgabe
+    "C9",
+    # pydocstyle
+#    "D",
+    # pep8-naming
+    "N",
+    # pycodestyle
+    "E",
+    "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # Ruff-specific rules
+    "RUF",
+    # Other plugins (specify)
+#    "PLR",
+    "PIE",
+]
+
+#select = ["ALL"]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.per-file-ignores]
+"**/tests/*" = [
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "E501"
+]
+"**/endpoints/*" = [
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "E501"
+]
