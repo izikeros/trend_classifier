@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 name = "trend-classifier"
-version = "0.1.9"
+version = "0.1.10"
 description = "Package for automated signal segmentation, trend classification and analysis."
 authors = ["Krystian Safjan <ksafjan@gmail.com>"]
 license = "MIT"
@@ -88,7 +88,7 @@ test = [
 includes = []
 [project]
 name = "trend-classifier"
-version = "0.1.9"
+version = "0.1.10"
 description = "Package for automated signal segmentation, trend classification and analysis."
 authors = [
     {name = "Krystian Safjan", email = "ksafjan@gmail.com"},
