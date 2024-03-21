@@ -1,4 +1,5 @@
 """Module with pydantic models and classes for Enum types."""
+
 from enum import Enum
 
 

@@ -18,6 +18,12 @@ clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
+## Create a virtual environment in the .venv folder in current directory.
+create-venv:
+	@echo -e "$(COLOR_CYAN)Creating virtual environment in the project folder...$(COLOR_RESET)" && \
+	poetry config --local virtualenvs.in-project true
+	poetry shell
+
 ## Lint package using pre-commit
 lint:
 	pre-commit run --all-files
@@ -67,6 +73,19 @@ update: tox_reqs_update
 	pre-commit autoupdate
 	pre-commit gc
 	poetry update
+
+## Install poetry plugins.
+poetry-plugins:
+	@echo -e "$(COLOR_CYAN)Installing poetry plugins...$(COLOR_RESET)" && \
+	poetry self add poetry-audit-plugin
+	poetry self add poetry-plugin-export
+
+## Run the check for vulnerabilities in the dependencies.
+audit:
+	# NOTE: This requires the 'poetry-audit-plugin' to be installed.
+	# to install use e.g. $ poetry self add poetry-audit-plugin
+	@echo -e "$(COLOR_CYAN)Running security audit based on 'safety'...$(COLOR_RESET)"
+	poetry audit
 
 #################################################################################
 # Self Documenting Commands                                                     #
