@@ -56,6 +56,54 @@ pytest-clarity = "^1.0.1"
 [tool.scriv]
 format = "md"
 
+[tool.pdm]
+distribution = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    #    "jupytext<2.0.0,>=1.14.1",
+    #    "notebook<7.0.0,>=6.4.12",
+    #    "optuna<4.0.0,>=3.0.0",
+    #    "ipywidgets<9.0.0,>=8.0.2",
+    #    "plotly<6.0.0,>=5.10.0",
+    #    "yfinance<1.0.0,>=0.1.74",
+    "tox>=4.14.1",
+    "devtools>=0.12.2",
+    "pre-commit>=3.6.2",
+    "black>=24.3.0",
+    "isort>=5.13.2",
+    "pdoc3>=0.10.0",
+    "scriv[toml]>=1.5.1",
+    "portray>=1.8.0",
+]
+test = [
+    "pytest>=8.1.1",
+    "pytest-icdiff>=0.9",
+    "pytest-clarity>=1.0.1",
+    "pytest-cov>=4.1.0",
+    "pytest-sugar>=1.0.0",
+]
+
+[tool.pdm.build]
+includes = []
+[project]
+name = "trend-classifier"
+version = "0.1.9"
+description = "Package for automated signal segmentation, trend classification and analysis."
+authors = [
+    {name = "Krystian Safjan", email = "ksafjan@gmail.com"},
+]
+dependencies = [
+    "matplotlib>=3.8.3",
+    "pydantic>=2.6.4",
+    "numpy>=1.26.4",
+    "pandas>=2.2.1",
+]
+requires-python = "<=3.13,>=3.9"
+readme = "README.md"
+license = {text = "MIT"}
+keywords = ["trend", "timeseries", "classification", "segmentation", "analysis", "algotrading", "finance"]
+classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Intended Audience :: Science/Research", "Intended Audience :: Financial and Insurance Industry", "License :: OSI Approved :: MIT License", "Programming Language :: Python :: 3", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Utilities"]
 [project.urls]
 "Source" = "https://github.com/izikeros/trend_classifier"
 "Bug Tracker" = "https://github.com/izikeros/trend_classifier/issues"
