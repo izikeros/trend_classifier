@@ -85,6 +85,13 @@ seg.segments.to_dataframe()
 
 (**NOTE:** for clarity reasons, not all columns are shown in the screenshot above)
 
+## Alternative approach
+- Smooth out the price data using the Savitzky-Golay filter,
+- label the highs and lows.
+- higher highs and higher lows indicates an uptrend.
+
+The requirement here is than you need OHLC data for the assets you would like to analyse.
+
 ## License
 
 [MIT](LICENSE) © [Krystian Safjan](https://safjan.com/).
