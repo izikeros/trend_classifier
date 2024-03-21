@@ -1,4 +1,5 @@
 """Module with pydantic model of Segment and helper datastructure - SegmentList."""
+
 import logging
 from copy import deepcopy
 
@@ -62,6 +63,7 @@ class Segment(BaseModel):
         return s1 + s2 + s3 + s4 + s5
 
     def remove_outstanding_windows(self, n):
+        """Remove windows that are outstanding from the segment."""
         new_slopes = deepcopy(self.slopes)
         new_offsets = deepcopy(self.offsets)
         new_starts = deepcopy(self.starts)
@@ -101,10 +103,10 @@ class SegmentList(list):
         """
         try:
             import pandas as pd
-        except ImportError:
+        except ImportError as ie:
             raise ImportError(
                 "Pandas is not installed. Install it with `pip install pandas`."
-            )
+            ) from ie
         df = pd.DataFrame([s.__dict__ for s in self])
         # reorder columns
         df = df[
