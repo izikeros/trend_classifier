@@ -88,9 +88,7 @@ class Segmenter:
         if x is not None and not isinstance(x, list):
             # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
             raise TypeError(
-                "x must be a list, got {}. For pandas dataframe use 'df' keyword argument".format(
-                    type(x)
-                )
+                f"x must be a list, got {type(x)}. For pandas dataframe use 'df' keyword argument"
             )
         # error - no input data provided
         if x is None and y is None and df is None:
@@ -106,7 +104,9 @@ class Segmenter:
             self.y = y
         # make warning if column provided but not dataframe
         if df is None and column is not None:
-            warnings.warn("No dataframe provided, column argument will be ignored.")
+            warnings.warn(
+                "No dataframe provided, column argument will be ignored.", stacklevel=2
+            )
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
@@ -124,7 +124,7 @@ class Segmenter:
         if self.x is None or self.y is None:
             raise ValueError("Segmenter x and y must be initialized!")
         # Read data from config to short variables
-        N = self.config.N
+        n = self.config.N
         overlap_ratio = self.config.overlap_ratio
         alpha = self.config.alpha
         beta = self.config.beta
@@ -137,10 +137,10 @@ class Segmenter:
 
         new_segment = {"s_start": 0, "slopes": [], "offsets": [], "starts": []}
 
-        off = self._set_offset(N, overlap_ratio)
+        off = self._set_offset(n, overlap_ratio)
 
-        for start in range(0, len(self.x) - N, off):  # noqa: FKA01
-            end = start + N
+        for start in range(0, len(self.x) - n, off):  # noqa: FKA01
+            end = start + n
             fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
             new_segment["slopes"].append(fit[0])
             new_segment["offsets"].append(fit[1])
@@ -230,6 +230,10 @@ class Segmenter:
     def describe_reason_for_new_segment(
         is_offset_different: bool, is_slope_different: bool
     ) -> str:
+        """Describe reason for creating a new segment.
+
+        Used for better explainability of the operation and decision-making.
+        """
         reason = "slope" if is_slope_different else "offset"
         if is_slope_different and is_offset_different:
             reason = "slope and offset"

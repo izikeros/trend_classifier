@@ -41,8 +41,8 @@ def _plot_segments(obj, fig_size: FigSize = (8, 4)) -> None:
         fit = np.polyfit(x=xx, y=yy, deg=1)
         fit_fn = np.poly1d(fit)
 
-        all_positive_slopes = all([v >= 0 for v in slopes])
-        all_negatives_slopes = all([v < 0 for v in slopes])
+        all_positive_slopes = all(v >= 0 for v in slopes)
+        all_negatives_slopes = all(v < 0 for v in slopes)
 
         if fit[0] >= 0 and all_positive_slopes:
             col = "g"

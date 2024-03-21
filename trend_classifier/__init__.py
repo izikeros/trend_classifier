@@ -1,4 +1,5 @@
 """Package for automated trend classification."""
+
 from trend_classifier.configuration import CONFIG_ABS
 from trend_classifier.configuration import CONFIG_REL
 from trend_classifier.configuration import Config
