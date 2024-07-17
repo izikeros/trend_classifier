@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.10] - 2024-03-21
+## [0.1.11] - 2024-07-17
 
 ### 📚 Documentation
 
@@ -14,18 +14,27 @@ All notable changes to this project will be documented in this file.
 
 - Reformat, minor refactorings
 
+### 🧪 Testing
+
+- Add py37, py38 to tox envlist
+- Add code example from the readme
+- Add GitHub action to test with tox
+
 ### ⚙️ Miscellaneous Tasks
 
 - Update tox requirements and config
 - Update flak8 config to new version of flake8
 - Add new Make targets
 - Add ruff config
+- Bump-up package version
 
 ### Build
 
 - Update ignored
 - Drop support for python 3.8
 - Migrate from poetry to pdm (gradually)
+- Replace poetry with pdm
+- Add MANIFEST.in
 
 ## [0.1.9] - 2023-05-26
 
