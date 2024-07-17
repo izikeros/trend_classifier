@@ -1,4 +1,5 @@
 """Module with pydantic model of Segment and helper datastructure - SegmentList."""
+
 from __future__ import annotations
 
 import logging
@@ -78,13 +79,9 @@ class Segment(BaseModel):
                 new_slopes.remove(self.slopes[self.starts.index(window_start)])
                 new_offsets.remove(self.offsets[self.starts.index(window_start)])
                 new_starts.remove(window_start)
-                logger.debug(
-                    "Removed window %f - %f.", window_start, window_start + n
-                )
+                logger.debug("Removed window %f - %f.", window_start, window_start + n)
             else:
-                logger.debug(
-                    "Keeping window %f - %f.", window_start, window_start + n
-                )
+                logger.debug("Keeping window %f - %f.", window_start, window_start + n)
         self.slopes = new_slopes
         self.offsets = new_offsets
         self.starts = new_starts
