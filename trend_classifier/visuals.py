@@ -1,12 +1,15 @@
-from typing import Union
+from __future__ import annotations
+
+from typing import List, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
+
 from trend_classifier.types import FigSize
 
 
 def _plot_detrended_signal(
-    x: list[float], y_de_trended: list[float], fig_size: FigSize = (10, 5)
+    x: List[float], y_de_trended: List[float], fig_size: FigSize = (10, 5)
 ) -> None:
     """Plot de-trended signal.
 
@@ -16,7 +19,7 @@ def _plot_detrended_signal(
         fig_size: size of the figure
     """
     plt.subplots(figsize=fig_size)
-    plt.plot(x, y_de_trended, "b-")  # noqa: FKA01
+    plt.plot(x, y_de_trended, "b-")
     # add x- and y-axis labels
     plt.xlabel("time", fontsize=14)
     plt.ylabel("de-trended value", fontsize=14)
@@ -51,8 +54,8 @@ def _plot_segments(obj, fig_size: FigSize = (8, 4)) -> None:
         else:
             col = "#A66"
 
-        plt.vlines(start, min(obj.y), max(obj.y), "#CCC")  # noqa: FKA01
-        plt.vlines(stop, min(obj.y), max(obj.y), "#CCC")  # noqa: FKA01
+        plt.vlines(start, min(obj.y), max(obj.y), "#CCC")
+        plt.vlines(stop, min(obj.y), max(obj.y), "#CCC")
 
         plt.plot(
             obj.x[start:stop],
@@ -69,7 +72,7 @@ def _plot_segments(obj, fig_size: FigSize = (8, 4)) -> None:
 
 def _plot_segment(
     obj,
-    idx: Union[list[int], int],
+    idx: Union[List[int], int],
     col: str = "red",
     fig_size: FigSize = (10, 5),
 ) -> None:
@@ -103,7 +106,7 @@ def _plot_segment(
 
 def _plot_segment_with_trendlines_no_context(
     obj,
-    idx: Union[list[int], int],
+    idx: Union[List[int], int],
     signal_color: str = "#ccc",
     fig_size: FigSize = (10, 5),
 ) -> None:
@@ -124,7 +127,7 @@ def _plot_segment_with_trendlines_no_context(
     plt.plot(xx, yy, color=signal_color, linestyle="-", linewidth=2)
 
     for i, (start, slope, offset) in enumerate(
-        zip(segment.starts, segment.slopes, segment.offsets)  # noqa: FKA01
+        zip(segment.starts, segment.slopes, segment.offsets)
     ):
         x = obj.x[start : obj.config.N + start]
         y = slope * np.array(x) + offset

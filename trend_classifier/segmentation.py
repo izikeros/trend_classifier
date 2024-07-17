@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 import warnings
-from typing import Optional
-from typing import Union
+from typing import List, Optional, Union
 
 import numpy as np
+
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
-from trend_classifier.segment import Segment
-from trend_classifier.segment import SegmentList
+from trend_classifier.segment import Segment, SegmentList
 from trend_classifier.types import FigSize
-from trend_classifier.visuals import _plot_detrended_signal
-from trend_classifier.visuals import _plot_segment
-from trend_classifier.visuals import _plot_segment_with_trendlines_no_context
-from trend_classifier.visuals import _plot_segments
+from trend_classifier.visuals import (
+    _plot_detrended_signal,
+    _plot_segment,
+    _plot_segment_with_trendlines_no_context,
+    _plot_segments,
+)
 
 
 def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> float:
@@ -42,8 +45,8 @@ class Segmenter:
 
     def __init__(
         self,
-        x: Optional[list[int]] = None,
-        y: Optional[list[int]] = None,
+        x: Optional[List[int]] = None,
+        y: Optional[List[int]] = None,
         df=None,
         column: Optional[str] = "Adj Close",
         config: Optional[Config] = None,
@@ -109,10 +112,10 @@ class Segmenter:
             )
         # input data provided as dataframe
         if df is not None:
-            self.x = list(range(0, len(df.index.tolist()), 1))  # noqa: FKA01
+            self.x = list(range(0, len(df.index.tolist()), 1))
             self.y = df[column].tolist()
 
-    def calculate_segments(self) -> list[Segment]:
+    def calculate_segments(self) -> List[Segment]:
         """Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -139,7 +142,7 @@ class Segmenter:
 
         off = self._set_offset(n, overlap_ratio)
 
-        for start in range(0, len(self.x) - n, off):  # noqa: FKA01
+        for start in range(0, len(self.x) - n, off):
             end = start + n
             fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
             new_segment["slopes"].append(fit[0])
@@ -285,7 +288,7 @@ class Segmenter:
 
     def plot_segment(
         self,
-        idx: Union[list[int], int],
+        idx: Union[List[int], int],
         col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:

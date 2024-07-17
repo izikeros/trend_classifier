@@ -1,8 +1,11 @@
 """Module with configuration class for Segmenter and sample configurations."""
 
+from __future__ import annotations
+
 from typing import Optional
 
 from pydantic import BaseModel
+
 from trend_classifier.models import Metrics
 
 

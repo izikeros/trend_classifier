@@ -1,7 +1,9 @@
 """Module with pydantic model of Segment and helper datastructure - SegmentList."""
+from __future__ import annotations
 
 import logging
 from copy import deepcopy
+from typing import List
 
 from pydantic import BaseModel
 
@@ -18,13 +20,13 @@ class Segment(BaseModel):
     stop: int
     """Stop index of the segment."""
 
-    slopes: list[float] = []
+    slopes: List[float] = []
     """List of slopes of linear trends in windows in the segment."""
 
-    offsets: list[float] = []
+    offsets: List[float] = []
     """List of offsets of linear trends in windows in the segment."""
 
-    starts: list[int] = []
+    starts: List[int] = []
     """List of start indices of windows in the segment."""
 
     # --- optional attributes with default values
@@ -76,11 +78,11 @@ class Segment(BaseModel):
                 new_slopes.remove(self.slopes[self.starts.index(window_start)])
                 new_offsets.remove(self.offsets[self.starts.index(window_start)])
                 new_starts.remove(window_start)
-                logger.debug(  # noqa: FKA01
+                logger.debug(
                     "Removed window %f - %f.", window_start, window_start + n
                 )
             else:
-                logger.debug(  # noqa: FKA01
+                logger.debug(
                     "Keeping window %f - %f.", window_start, window_start + n
                 )
         self.slopes = new_slopes

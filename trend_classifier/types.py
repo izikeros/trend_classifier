@@ -1,3 +1,5 @@
-from typing import Union
+from __future__ import annotations
 
-FigSize = tuple[Union[float, int], Union[float, int]]
+from typing import Tuple, Union
+
+FigSize = Tuple[Union[float, int], Union[float, int]]
