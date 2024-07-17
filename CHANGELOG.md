@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.12] - 2024-07-17
+
+### 🐛 Bug Fixes
+
+- Fix type hints to avoid compatibility issues
+
+### 📚 Documentation
+
+- Update CHANGELOG
+
+### 🎨 Styling
+
+- Reformat
+
+### 🧪 Testing
+
+- Add yfinance to test requirements
+- Remove support for python 3.7
+- Reformat
+
+### Build
+
+- Update dev dependencies
+
 ## [0.1.11] - 2024-07-17
 
 ### 📚 Documentation
@@ -18,7 +42,7 @@ All notable changes to this project will be documented in this file.
 
 - Add py37, py38 to tox envlist
 - Add code example from the readme
-- Add GitHub action to test with tox
+- Add github action to test with tox
 
 ### ⚙️ Miscellaneous Tasks
 
