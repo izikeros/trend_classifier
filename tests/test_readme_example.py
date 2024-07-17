@@ -1,4 +1,5 @@
 import yfinance as yf
+
 from trend_classifier import Segmenter
 
 

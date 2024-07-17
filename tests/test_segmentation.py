@@ -1,14 +1,15 @@
 from unittest.mock import patch
 
 import pytest
+
 from trend_classifier.configuration import CONFIG_REL_SLOPE_ONLY
 from trend_classifier.segmentation import Segmenter
 
 
 class TestCalculateSegments:
     def test_calculate_segments__lambda_shape(self):
-        x = list(range(0, 200))
-        y = list(range(0, 100)) + list(range(100, 0, -1))  # noqa: FKA01
+        x = list(range(200))
+        y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
 
         segments = self.seg.calculate_segments()
@@ -16,24 +17,24 @@ class TestCalculateSegments:
         assert n_segments == 2
 
     def test_calculate_segments__v_shape(self):
-        x = list(range(0, 200))
-        y = list(range(100, 0, -1)) + list(range(0, 100))  # noqa: FKA01
+        x = list(range(200))
+        y = list(range(100, 0, -1)) + list(range(100))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
         segments = self.seg.calculate_segments()
         n_segments = len(segments)
         assert n_segments == 2
 
     def test_calculate_segments__line_up(self):
-        x = list(range(0, 200))
-        y = list(range(0, 200))
+        x = list(range(200))
+        y = list(range(200))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
         segments = self.seg.calculate_segments()
         n_segments = len(segments)
         assert n_segments == 1
 
     def test_calculate_segments__line_down(self):
-        x = list(range(0, 200))  # noqa: FKA01
-        y = list(range(200, 0, -1))  # noqa: FKA01
+        x = list(range(200))
+        y = list(range(200, 0, -1))
         self.seg = Segmenter(x=x, y=y)
         segments = self.seg.calculate_segments()
         assert len(segments) == 1
@@ -47,8 +48,8 @@ class TestCalculateSegments:
         assert True
 
     def test_calc_area_outside_trend(self):
-        x = list(range(0, 200))  # noqa: FKA01
-        y = list(range(0, 100)) + list(range(100, 0, -1))  # noqa: FKA01
+        x = list(range(200))
+        y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y)
         self.seg.calculate_segments()
         area_outside_trend = self.seg.calc_area_outside_trend()
@@ -67,8 +68,8 @@ class TestCalculateSegments:
 
 class TestSegmenterPlotting:
     def setup_class(self):
-        x = list(range(0, 200))  # noqa: FKA01
-        y = list(range(0, 100)) + list(range(100, 0, -1))  # noqa: FKA01
+        x = list(range(200))
+        y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y)
         self.seg.calculate_segments()
 
@@ -92,6 +93,7 @@ class TestSegmenterPlotting:
 @pytest.mark.skip(reason="Use for manual testing")
 def test_real_data():
     import yfinance as yf
+
     from trend_classifier import Segmenter
 
     df = yf.download(
