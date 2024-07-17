@@ -2,60 +2,6 @@
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.poetry]
-name = "trend-classifier"
-version = "0.1.10"
-description = "Package for automated signal segmentation, trend classification and analysis."
-authors = ["Krystian Safjan <ksafjan@gmail.com>"]
-license = "MIT"
-readme = "README.md"
-keywords = ["trend", "timeseries", "classification", "segmentation", "analysis", "algotrading", "finance"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "Intended Audience :: Financial and Insurance Industry",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    'Topic :: Utilities',
-]
-
-[tool.poetry.dependencies]
-python = ">=3.9,<=3.13"
-matplotlib = "^3.5.3"
-pydantic = "^1.10.1"
-numpy = "^1.23.2"
-pandas = "^1.4.4"
-
-[tool.poetry.group.dev.dependencies]
-tox = "^3.25.1"
-portray = "^1.7.0"
-pdoc3 = "^0.10.0"
-jupytext = "^1.14.1"
-notebook = "^6.4.12"
-black = "^22.6.0"
-pre-commit = "^2.20.0"
-scriv = {extras = ["toml"], version = "^0.16.0"}
-optuna = "^3.0.0"
-ipywidgets = "^8.0.2"
-devtools = "^0.9.0"
-plotly = "^5.10.0"
-yfinance = "^0.1.74"
-pandas = "^1.4.3"
-pip-upgrader = "^1.4.15"
-pytest-sugar = "^0.9.5"
-pytest-cov = "^3.0.0"
-pip-upgrade = "^0.0.6"
-
-[tool.poetry.group.test.dependencies]
-pytest = "^7.1.2"
-pytest-icdiff = "^0.6"
-pytest-clarity = "^1.0.1"
-
-[tool.scriv]
-format = "md"
-
 [tool.pdm]
 distribution = true
 
@@ -75,6 +21,7 @@ dev = [
     "pdoc3>=0.10.0",
     "scriv[toml]>=1.5.1",
     "portray>=1.8.0",
+    "nox[tox_to_nox]>=2024.4.15",
 ]
 test = [
     "pytest>=8.1.1",
@@ -86,12 +33,16 @@ test = [
 
 [tool.pdm.build]
 includes = []
+
+[tool.black]
+target-version = ["py37"]
+
 [project]
 name = "trend-classifier"
-version = "0.1.10"
+version = "0.1.11"
 description = "Package for automated signal segmentation, trend classification and analysis."
 authors = [
-    {name = "Krystian Safjan", email = "ksafjan@gmail.com"},
+    { name = "Krystian Safjan", email = "ksafjan@gmail.com" },
 ]
 dependencies = [
     "matplotlib>=3.8.3",
@@ -99,11 +50,26 @@ dependencies = [
     "numpy>=1.26.4",
     "pandas>=2.2.1",
 ]
-requires-python = "<=3.13,>=3.9"
+requires-python = "<=3.13,>=3.7"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 keywords = ["trend", "timeseries", "classification", "segmentation", "analysis", "algotrading", "finance"]
-classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Intended Audience :: Science/Research", "Intended Audience :: Financial and Insurance Industry", "License :: OSI Approved :: MIT License", "Programming Language :: Python :: 3", "Topic :: Software Development :: Libraries :: Python Modules", "Topic :: Utilities"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3 :: Only',
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"]
 [project.urls]
 "Source" = "https://github.com/izikeros/trend_classifier"
 "Bug Tracker" = "https://github.com/izikeros/trend_classifier/issues"
