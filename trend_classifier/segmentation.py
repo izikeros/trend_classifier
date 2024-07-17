@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import warnings
+import logging
 from typing import List, Optional, Union
 
 import numpy as np
@@ -15,6 +15,8 @@ from trend_classifier.visuals import (
     _plot_segment_with_trendlines_no_context,
     _plot_segments,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> float:
@@ -107,9 +109,7 @@ class Segmenter:
             self.y = y
         # make warning if column provided but not dataframe
         if df is None and column is not None:
-            warnings.warn(
-                "No dataframe provided, column argument will be ignored.", stacklevel=2
-            )
+            logger.warn("No dataframe provided, column argument will be ignored.")
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))
