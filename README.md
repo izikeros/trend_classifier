@@ -6,7 +6,7 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/izikeros/trend_classifier/main.svg)](https://results.pre-commit.ci/latest/github/izikeros/trend_classifier/main)
 [![Black formatter](https://github.com/izikeros/trend_classifier/actions/workflows/black.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/black.yml)
 [![flake8](https://github.com/izikeros/trend_classifier/actions/workflows/flake8.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/flake8.yml)
-[![pytest](https://github.com/izikeros/trend_classifier/actions/workflows/pytest.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/pytest.yml)
+[![pytest](https://github.com/izikeros/trend_classifier/actions/workflows/tests_with_tox.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/pytest.yml)
 [![Maintainability](https://api.codeclimate.com/v1/badges/081a20bb8a5201cd8faf/maintainability)](https://codeclimate.com/github/izikeros/trend_classifier/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/081a20bb8a5201cd8faf/test_coverage)](https://codeclimate.com/github/izikeros/trend_classifier/test_coverage)
 
