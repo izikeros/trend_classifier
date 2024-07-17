@@ -45,10 +45,10 @@ authors = [
     { name = "Krystian Safjan", email = "ksafjan@gmail.com" },
 ]
 dependencies = [
-    "matplotlib>=3.8.3",
-    "pydantic>=2.6.4",
-    "numpy>=1.26.4",
-    "pandas>=2.2.1",
+    "matplotlib",
+    "pydantic",
+    "numpy",
+    "pandas",
 ]
 requires-python = "<=3.13,>=3.8"
 readme = "README.md"
