@@ -1,4 +1,0 @@
-flake8==7.0.0
-flake8-bugbear==24.2.6
-flake8-docstrings==1.7.0
-flake8-bandit==4.1.1

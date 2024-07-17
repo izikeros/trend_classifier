@@ -1,7 +1,0 @@
-# file created to ease package upgrade with pip-upgrade:
-# pip-upgrade tox-reqs/all.txt
-
--r black.txt
--r coverage.txt
--r flake8.txt
--r mypy.txt
