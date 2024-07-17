@@ -1,22 +1,23 @@
 from unittest.mock import patch
-
 import pytest
-
 from trend_classifier.configuration import CONFIG_REL_SLOPE_ONLY
 from trend_classifier.segmentation import Segmenter
 
 
 class TestCalculateSegments:
+    """Test suite for the calculate_segments method of the Segmenter class."""
+
     def test_calculate_segments__lambda_shape(self):
+        """Test segmentation of a lambda-shaped trend."""
         x = list(range(200))
         y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
-
         segments = self.seg.calculate_segments()
         n_segments = len(segments)
         assert n_segments == 2
 
     def test_calculate_segments__v_shape(self):
+        """Test segmentation of a V-shaped trend."""
         x = list(range(200))
         y = list(range(100, 0, -1)) + list(range(100))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
@@ -25,6 +26,7 @@ class TestCalculateSegments:
         assert n_segments == 2
 
     def test_calculate_segments__line_up(self):
+        """Test segmentation of an upward linear trend."""
         x = list(range(200))
         y = list(range(200))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
@@ -33,6 +35,7 @@ class TestCalculateSegments:
         assert n_segments == 1
 
     def test_calculate_segments__line_down(self):
+        """Test segmentation of a downward linear trend."""
         x = list(range(200))
         y = list(range(200, 0, -1))
         self.seg = Segmenter(x=x, y=y)
@@ -48,6 +51,7 @@ class TestCalculateSegments:
         assert True
 
     def test_calc_area_outside_trend(self):
+        """Test calculation of area outside the trend."""
         x = list(range(200))
         y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y)
@@ -56,18 +60,23 @@ class TestCalculateSegments:
         assert area_outside_trend > 0
 
     def test__set_offset(self):
+        """Test setting of offset based on overlap ratio."""
         self.seg = Segmenter(x=[], y=[])
         offset = self.seg._set_offset(n=100, overlap_ratio=0.2)
         assert offset == 20
 
     def test__set_offset__adjust_to_one(self):
+        """Test adjustment of offset to 1 for small overlap ratios."""
         self.seg = Segmenter(x=[], y=[])
         offset = self.seg._set_offset(n=10, overlap_ratio=0.001)
         assert offset == 1
 
 
 class TestSegmenterPlotting:
+    """Test suite for the plotting methods of the Segmenter class."""
+
     def setup_class(self):
+        """Set up the Segmenter instance for plotting tests."""
         x = list(range(200))
         y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y)
@@ -75,30 +84,33 @@ class TestSegmenterPlotting:
 
     @patch("matplotlib.pyplot.show")
     def test_plot_segment(self, mock_show):
+        """Test plotting of a single segment."""
         self.seg.plot_segment(0)
 
     @patch("matplotlib.pyplot.show")
     def test_plot_segments(self, mock_show):
+        """Test plotting of all segments."""
         self.seg.plot_segments()
 
     @patch("matplotlib.pyplot.show")
     def test_plot_detrended_signal(self, mock_show):
+        """Test plotting of the detrended signal."""
         self.seg.plot_detrended_signal()
 
     @patch("matplotlib.pyplot.show")
     def test_plot_segment_with_trendlines_no_context(self, mock_show):
+        """Test plotting of a segment with trendlines and no context."""
         self.seg.plot_segment_with_trendlines_no_context(0)
 
 
 @pytest.mark.skip(reason="Use for manual testing")
 def test_real_data():
+    """Test the Segmenter with real stock market data (manual test)."""
     import yfinance as yf
-
     from trend_classifier import Segmenter
 
     df = yf.download(
         "AAPL", start="2018-09-15", end="2022-09-06", interval="1d", progress=False
     )
-
     seg = Segmenter(df=df, column="Adj Close", n=20)
     seg.calculate_segments()
