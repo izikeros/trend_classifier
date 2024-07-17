@@ -7,20 +7,12 @@ distribution = true
 
 [tool.pdm.dev-dependencies]
 dev = [
-    #    "jupytext<2.0.0,>=1.14.1",
-    #    "notebook<7.0.0,>=6.4.12",
-    #    "optuna<4.0.0,>=3.0.0",
-    #    "ipywidgets<9.0.0,>=8.0.2",
-    #    "plotly<6.0.0,>=5.10.0",
     "tox>=4.14.1",
     "devtools>=0.12.2",
-    "pre-commit>=3.6.2",
     "black>=24.3.0",
     "isort>=5.13.2",
     "pdoc3>=0.10.0",
-#    "scriv[toml]>=1.5.1",
     "portray>=1.8.0",
-#    "nox[tox_to_nox]>=2024.4.15",
     "yfinance>=0.2.40",
 ]
 test = [
@@ -51,7 +43,7 @@ dependencies = [
     "numpy",
     "pandas",
 ]
-requires-python = "<=3.13,>=3.8"
+requires-python = "<=3.13,>=3.9"
 readme = "README.md"
 license = { text = "MIT" }
 keywords = ["trend", "timeseries", "classification", "segmentation", "analysis", "algotrading", "finance"]
