@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Designer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #000;
+            margin-bottom: 20px;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Signal Designer</h1>
+    <canvas id="signalCanvas" width="600" height="400"></canvas>
+    <button id="downloadBtn">Download Signal JSON</button>
+
+    <script>
+        const canvas = document.getElementById('signalCanvas');
+        const ctx = canvas.getContext('2d');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const xPoints = 200;
+        const yValues = new Array(xPoints).fill(height / 2);
+
+        let isDrawing = false;
+
+        function drawSignal() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.beginPath();
+            ctx.moveTo(0, height - yValues[0]);
+            for (let i = 1; i < xPoints; i++) {
+                ctx.lineTo(i * (width / xPoints), height - yValues[i]);
+            }
+            ctx.stroke();
+        }
+
+        function updateYValue(x, y) {
+            const index = Math.floor(x / (width / xPoints));
+            if (index >= 0 && index < xPoints) {
+                yValues[index] = y;
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            updateYValue(e.offsetX, e.offsetY);
+            drawSignal();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                updateYValue(e.offsetX, e.offsetY);
+                drawSignal();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const signalData = {
+                x: Array.from({length: xPoints}, (_, i) => i),
+                y: yValues.map(y => height - y)
+            };
+
+            const jsonString = JSON.stringify(signalData, null, 2);
+            const blob = new Blob([jsonString], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'signal_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        drawSignal();
+    </script>
+</body>
+</html>
