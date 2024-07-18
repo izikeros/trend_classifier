@@ -1,5 +1,7 @@
 from unittest.mock import patch
+
 import pytest
+
 from trend_classifier.configuration import CONFIG_REL_SLOPE_ONLY
 from trend_classifier.segmentation import Segmenter
 
@@ -8,7 +10,10 @@ class TestCalculateSegments:
     """Test suite for the calculate_segments method of the Segmenter class."""
 
     def test_calculate_segments__lambda_shape(self):
-        """Test segmentation of a lambda-shaped trend."""
+        """Test segmentation of a lambda-shaped trend.
+
+        Expected: 2 segments.
+        """
         x = list(range(200))
         y = list(range(100)) + list(range(100, 0, -1))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
@@ -17,7 +22,9 @@ class TestCalculateSegments:
         assert n_segments == 2
 
     def test_calculate_segments__v_shape(self):
-        """Test segmentation of a V-shaped trend."""
+        """Test segmentation of a V-shaped trend.
+
+        Expected: 2 segments."""
         x = list(range(200))
         y = list(range(100, 0, -1)) + list(range(100))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
@@ -26,7 +33,10 @@ class TestCalculateSegments:
         assert n_segments == 2
 
     def test_calculate_segments__line_up(self):
-        """Test segmentation of an upward linear trend."""
+        """Test segmentation of an upward linear trend.
+
+        Expected: 1 segment.
+        """
         x = list(range(200))
         y = list(range(200))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
@@ -35,12 +45,130 @@ class TestCalculateSegments:
         assert n_segments == 1
 
     def test_calculate_segments__line_down(self):
-        """Test segmentation of a downward linear trend."""
+        """Test segmentation of a downward linear trend.
+
+        Expected: 1 segment."""
         x = list(range(200))
         y = list(range(200, 0, -1))
         self.seg = Segmenter(x=x, y=y)
         segments = self.seg.calculate_segments()
         assert len(segments) == 1
+
+    def test_calculate_segments__m_shape(self):
+        """Test segmentation of an M-shaped signal.
+
+        Expected: 3 segments.
+        """
+        x = list(range(300))
+        y = list(range(100)) + list(range(100, 0, -1)) + list(range(100))
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 3
+
+    def test_calculate_segments__w_shape(self):
+        """Test segmentation of a W-shaped signal.
+
+        Expected: 3 segments.
+        """
+        x = list(range(300))
+        y = list(range(100, 0, -1)) + list(range(100)) + list(range(100, 0, -1))
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 3
+
+    def test_calculate_segments__u_shape(self):
+        """Test segmentation of a U-shaped signal.
+
+        Expected: 2 segments.
+        """
+        x = list(range(200))
+        y = list(range(100, 0, -1)) + list(range(100))
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 2
+
+    def test_calculate_segments__zigzag(self):
+        """Test segmentation of a zigzag-shaped signal.
+
+        Expected: 3 segments.
+        """
+        x = list(range(300))
+        y = list(range(100)) + list(range(100, 0, -1)) + list(range(100))
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 3
+
+    def test_calculate_segments__sine(self):
+        """Test segmentation of a sine-shaped signal.
+
+        Expected: 3 segment.
+        """
+        import numpy as np
+
+        x = np.linspace(0, 2 * np.pi, 200).tolist()
+        y = np.sin(x).tolist()
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 3
+
+    def test_calculate_segments__sine_halfs(self):
+        """Test segmentation of a sine-shaped signal with half's.
+
+        Expected: 4 segments.
+        """
+        import numpy as np
+
+        x = np.linspace(0, 2 * np.pi, 200).tolist()
+        y = np.abs(np.sin(x)).tolist()
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 4
+
+    # saw-shaped signal, 10 periods with amplitude from 1
+    # in the beginning to 0 in the end (gradually suppressing the signal)
+    @pytest.mark.skip(reason="Solution not working correctly")
+    def test_calculate_segments__saw_10(self):
+        """Test segmentation of a saw-shaped signal.
+
+        Expected: 1 segment.
+        """
+        x = list(range(200))
+        y = (list(range(10)) + list(range(10, 0, -1))) * 10
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 20
+
+    @pytest.mark.skip(reason="Solution not working correctly")
+    def test_calculate_segments__saw_25(self):
+        """Test segmentation of a saw-shaped signal.
+
+        Expected: 1 segment.
+        """
+        x = list(range(200))
+        y = (list(range(25)) + list(range(25, 0, -1))) * 4
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 8
+
+    def test_calculate_segments__saw_50(self):
+        """Test segmentation of a saw-shaped signal.
+
+        Expected: 1 segment.
+        """
+        x = list(range(200))
+        y = (list(range(50)) + list(range(50, 0, -1))) * 2
+        self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
+        segments = self.seg.calculate_segments()
+        n_segments = len(segments)
+        assert n_segments == 4
 
     @pytest.mark.skip(reason="Not implemented yet")
     def test_calculate_segments__segments_not_overlap(self):
@@ -107,6 +235,7 @@ class TestSegmenterPlotting:
 def test_real_data():
     """Test the Segmenter with real stock market data (manual test)."""
     import yfinance as yf
+
     from trend_classifier import Segmenter
 
     df = yf.download(
