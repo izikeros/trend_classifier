@@ -21,6 +21,9 @@
             padding: 10px 20px;
             margin: 0 10px;
         }
+        .checkbox-container {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -28,7 +31,11 @@
     <canvas id="signalCanvas" width="600" height="400"></canvas>
     <div>
         <button id="clearBtn">Clear Signal</button>
-        <button id="downloadBtn">Download Signal JSON</button>
+        <button id="downloadBtn">Download Signal</button>
+    </div>
+    <div class="checkbox-container">
+        <input type="checkbox" id="downloadImage" name="downloadImage">
+        <label for="downloadImage">Download image as well</label>
     </div>
 
     <script>
@@ -36,6 +43,7 @@
         const ctx = canvas.getContext('2d');
         const downloadBtn = document.getElementById('downloadBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const downloadImageCheckbox = document.getElementById('downloadImage');
 
         const width = canvas.width;
         const height = canvas.height;
@@ -91,18 +99,27 @@
                 };
 
                 const jsonString = JSON.stringify(signalData, null, 2);
-                const blob = new Blob([jsonString], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
+                const jsonBlob = new Blob([jsonString], {type: 'application/json'});
+                downloadFile(jsonBlob, `${fileName}.json`);
 
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${fileName}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                if (downloadImageCheckbox.checked) {
+                    canvas.toBlob((blob) => {
+                        downloadFile(blob, `${fileName}.png`);
+                    }, 'image/png');
+                }
             }
         });
+
+        function downloadFile(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
 
         clearBtn.addEventListener('click', () => {
             yValues.fill(height / 2);
