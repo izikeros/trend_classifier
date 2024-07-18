@@ -19,18 +19,23 @@
         button {
             font-size: 16px;
             padding: 10px 20px;
+            margin: 0 10px;
         }
     </style>
 </head>
 <body>
     <h1>Signal Designer</h1>
     <canvas id="signalCanvas" width="600" height="400"></canvas>
-    <button id="downloadBtn">Download Signal JSON</button>
+    <div>
+        <button id="clearBtn">Clear Signal</button>
+        <button id="downloadBtn">Download Signal JSON</button>
+    </div>
 
     <script>
         const canvas = document.getElementById('signalCanvas');
         const ctx = canvas.getContext('2d');
         const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
 
         const width = canvas.width;
         const height = canvas.height;
@@ -42,9 +47,9 @@
         function drawSignal() {
             ctx.clearRect(0, 0, width, height);
             ctx.beginPath();
-            ctx.moveTo(0, height - yValues[0]);
+            ctx.moveTo(0, yValues[0]);
             for (let i = 1; i < xPoints; i++) {
-                ctx.lineTo(i * (width / xPoints), height - yValues[i]);
+                ctx.lineTo(i * (width / xPoints), yValues[i]);
             }
             ctx.stroke();
         }
@@ -78,22 +83,30 @@
         });
 
         downloadBtn.addEventListener('click', () => {
-            const signalData = {
-                x: Array.from({length: xPoints}, (_, i) => i),
-                y: yValues.map(y => height - y)
-            };
+            const fileName = prompt("Enter a name for your signal:", "signal_data");
+            if (fileName) {
+                const signalData = {
+                    x: Array.from({length: xPoints}, (_, i) => i),
+                    y: yValues
+                };
 
-            const jsonString = JSON.stringify(signalData, null, 2);
-            const blob = new Blob([jsonString], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
+                const jsonString = JSON.stringify(signalData, null, 2);
+                const blob = new Blob([jsonString], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
 
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'signal_data.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${fileName}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            yValues.fill(height / 2);
+            drawSignal();
         });
 
         drawSignal();
