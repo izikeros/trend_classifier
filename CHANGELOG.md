@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2024-07-18
+
+### 🚀 Features
+
+- Add signal drawing utility
+- *(app)* Add clear button, prompt for file name.
+- *(app)* Add option do download signal data with image
+
+### 🚜 Refactor
+
+- Replace warning with log message
+- Move code to src folder
+
+### 📚 Documentation
+
+- Update CHANGELOG
+
+### 🎨 Styling
+
+- Reformat
+- Reformat
+
+### 🧪 Testing
+
+- Remove tox-reqs
+- Unpin package versions
+- Add yfinance to test requirements
+- Simplify tox.ini
+- Update tox config
+- Add codecov GitHub action
+- Add more signals to test with
+- Remove py38 test env
+- Add pre-loaded data
+- Add mocked version of test
+- Add signals
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove not used files
+- Clean-up pyproject.toml
+- Add bumpversion config
+- Add bumpversion config
+
+### Build
+
+- Remove pytest gh action
+- Update dependencies and metadata
+- Update project conf
+- Add version
+
 ## [0.1.12] - 2024-07-17
 
 ### 🐛 Bug Fixes
