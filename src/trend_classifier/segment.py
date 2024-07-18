@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
-from typing import List
 
 from pydantic import BaseModel
 
@@ -21,13 +20,13 @@ class Segment(BaseModel):
     stop: int
     """Stop index of the segment."""
 
-    slopes: List[float] = []
+    slopes: list[float] = []
     """List of slopes of linear trends in windows in the segment."""
 
-    offsets: List[float] = []
+    offsets: list[float] = []
     """List of offsets of linear trends in windows in the segment."""
 
-    starts: List[int] = []
+    starts: list[int] = []
     """List of start indices of windows in the segment."""
 
     # --- optional attributes with default values

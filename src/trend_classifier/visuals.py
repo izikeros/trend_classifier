@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import List, Union
+from typing import Union
 
 import numpy as np
 from matplotlib import pyplot as plt
 
-from trend_classifier.types import FigSize
+FigSize = tuple[Union[float, int], Union[float, int]]
 
 
 def _plot_detrended_signal(
-    x: List[float], y_de_trended: List[float], fig_size: FigSize = (10, 5)
+    x: list[float], y_de_trended: list[float], fig_size: FigSize = (10, 5)
 ) -> None:
     """Plot de-trended signal.
 
@@ -54,8 +54,8 @@ def _plot_segments(obj, fig_size: FigSize = (8, 4)) -> None:
         else:
             col = "#A66"
 
-        plt.vlines(start, min(obj.y), max(obj.y), "#CCC")
-        plt.vlines(stop, min(obj.y), max(obj.y), "#CCC")
+        plt.vlines(obj.x[start - 1], min(obj.y), max(obj.y), "#CCC")
+        plt.vlines(obj.x[stop - 1], min(obj.y), max(obj.y), "#CCC")
 
         plt.plot(
             obj.x[start:stop],
@@ -72,7 +72,7 @@ def _plot_segments(obj, fig_size: FigSize = (8, 4)) -> None:
 
 def _plot_segment(
     obj,
-    idx: Union[List[int], int],
+    idx: list[int] | int,
     col: str = "red",
     fig_size: FigSize = (10, 5),
 ) -> None:
@@ -106,7 +106,7 @@ def _plot_segment(
 
 def _plot_segment_with_trendlines_no_context(
     obj,
-    idx: Union[List[int], int],
+    idx: list[int] | int,
     signal_color: str = "#ccc",
     fig_size: FigSize = (10, 5),
 ) -> None:

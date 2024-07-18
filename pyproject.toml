@@ -14,9 +14,11 @@ dev = [
     "pdoc3>=0.10.0",
     "portray>=1.8.0",
     "yfinance>=0.2.40",
+    "tox-pyenv-redux>=1.1.0",
+    "ipykernel>=6.29.5",
 ]
 test = [
-    "pytest>=8.1.1",
+    "pytest>=8.2.2",
     "pytest-icdiff>=0.9",
     "pytest-clarity>=1.0.1",
     "pytest-cov>=4.1.0",
@@ -42,6 +44,7 @@ dependencies = [
     "pydantic",
     "numpy",
     "pandas",
+    "eval-type-backport",
 ]
 requires-python = "<=3.13,>=3.9"
 readme = "README.md"

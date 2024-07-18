@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, Union
+from typing import Tuple, Union
 
 import numpy as np
 
 from trend_classifier.configuration import Config
 from trend_classifier.models import Metrics
 from trend_classifier.segment import Segment, SegmentList
-from trend_classifier.types import FigSize
 from trend_classifier.visuals import (
     _plot_detrended_signal,
     _plot_segment,
@@ -17,11 +16,14 @@ from trend_classifier.visuals import (
 )
 
 logger = logging.getLogger(__name__)
+FigSize = Tuple[Union[float, int], Union[float, int]]
 
 
-def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> float:
-    """Calculate how much two parameters differ.
-
+def calculate_error(
+    a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR
+) -> float | None:
+    """
+    Calculate how much two parameters differ.
     Used e.g. to calculate how much the slopes of linear trends in two windows differ.
 
     Args:
@@ -30,16 +32,22 @@ def _error(a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR) -> flo
         metrics: Metrics to use for the calculation.
 
     Returns:
-        Measure of difference between the two parameters.
+        Measure of difference between the two parameters, or None if calculation is not possible.
 
     See Also:
         class `Metrics`
-
     """
-    if metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        return abs(a - b) / abs(a)
+    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
+        raise ValueError("Both 'a' and 'b' must be numeric values.")
+
     if metrics == Metrics.ABSOLUTE_ERROR:
         return abs(a - b)
+    elif metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
+        if a == 0:
+            return None  # Cannot calculate relative error when denominator is zero
+        return abs(a - b) / abs(a)
+    else:
+        raise ValueError(f"Unsupported metrics: {metrics}")
 
 
 class Segmenter:
@@ -47,12 +55,12 @@ class Segmenter:
 
     def __init__(
         self,
-        x: Optional[List[int]] = None,
-        y: Optional[List[int]] = None,
+        x: list[int] | None = None,
+        y: list[int] | None = None,
         df=None,
-        column: Optional[str] = "Adj Close",
-        config: Optional[Config] = None,
-        n: Optional[int] = None,
+        column: str | None = "Adj Close",
+        config: Config | None = None,
+        n: int | None = None,
     ):
         """Initialize the segmenter.
 
@@ -66,12 +74,12 @@ class Segmenter:
         """
         self._handle_configuration(config, n)
         self._handle_input_data(column=column, df=df, x=x, y=y)
-        self.y_de_trended: Optional[list] = None
-        self.segments: Optional[SegmentList[Segment]] = None
-        self.slope: Optional[float] = None
-        self.offset: Optional[float] = None
-        self.slopes_std: Optional[float] = None
-        self.offsets_std: Optional[float] = None
+        self.y_de_trended: list | None = None
+        self.segments: SegmentList[Segment] | None = None
+        self.slope: float | None = None
+        self.offset: float | None = None
+        self.slopes_std: float | None = None
+        self.offsets_std: float | None = None
 
     def _handle_configuration(self, config, n):
         # Handle configuration
@@ -108,14 +116,14 @@ class Segmenter:
             self.x = x
             self.y = y
         # make warning if column provided but not dataframe
-        if df is None and column is not None:
-            logger.warn("No dataframe provided, column argument will be ignored.")
+        # if df is None and column is not None:
+        #     logger.warning("No dataframe provided, column argument will be ignored.")
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))
             self.y = df[column].tolist()
 
-    def calculate_segments(self) -> List[Segment]:
+    def calculate_segments(self) -> list[Segment]:
         """Calculate segments with similar trend for the given timeserie.
 
         Calculates:
@@ -131,8 +139,8 @@ class Segmenter:
         overlap_ratio = self.config.overlap_ratio
         alpha = self.config.alpha
         beta = self.config.beta
-        metrics_alpha = self.config.metrics_alpha
-        metrics_beta = self.config.metrics_beta
+        metrics_for_alpha = self.config.metrics_for_alpha
+        metrics_for_beta = self.config.metrics_for_beta
 
         prev_fit = None
 
@@ -153,12 +161,12 @@ class Segmenter:
                 # asses if the slope is similar to the previous one
                 prev_slope = float(prev_fit[0])
                 this_slope = float(fit[0])
-                r0 = _error(prev_slope, this_slope, metrics=metrics_alpha)
+                r0 = calculate_error(prev_slope, this_slope, metrics=metrics_for_alpha)
 
                 # asses if the offset is similar to the previous one
                 prev_offset = float(prev_fit[1])
                 this_offset = float(fit[1])
-                r1 = _error(prev_offset, this_offset, metrics=metrics_beta)
+                r1 = calculate_error(prev_offset, this_offset, metrics=metrics_for_beta)
 
                 is_slope_different = r0 >= alpha if alpha is not None else False
                 is_offset_different = r1 >= beta if beta is not None else False
@@ -288,7 +296,7 @@ class Segmenter:
 
     def plot_segment(
         self,
-        idx: Union[List[int], int],
+        idx: list[int] | int,
         col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:
