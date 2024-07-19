@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 
@@ -16,7 +16,7 @@ from trend_classifier.visuals import (
 )
 
 logger = logging.getLogger(__name__)
-FigSize = Tuple[Union[float, int], Union[float, int]]
+FigSize = tuple[Union[float, int], Union[float, int]]
 
 
 def calculate_error(

@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-
 from trend_classifier.configuration import CONFIG_REL_SLOPE_ONLY
 from trend_classifier.segmentation import Segmenter
 
@@ -24,7 +23,8 @@ class TestCalculateSegments:
     def test_calculate_segments__v_shape(self):
         """Test segmentation of a V-shaped trend.
 
-        Expected: 2 segments."""
+        Expected: 2 segments.
+        """
         x = list(range(200))
         y = list(range(100, 0, -1)) + list(range(100))
         self.seg = Segmenter(x=x, y=y, config=CONFIG_REL_SLOPE_ONLY)
@@ -47,7 +47,8 @@ class TestCalculateSegments:
     def test_calculate_segments__line_down(self):
         """Test segmentation of a downward linear trend.
 
-        Expected: 1 segment."""
+        Expected: 1 segment.
+        """
         x = list(range(200))
         y = list(range(200, 0, -1))
         self.seg = Segmenter(x=x, y=y)
@@ -235,7 +236,6 @@ class TestSegmenterPlotting:
 def test_real_data():
     """Test the Segmenter with real stock market data (manual test)."""
     import yfinance as yf
-
     from trend_classifier import Segmenter
 
     df = yf.download(
