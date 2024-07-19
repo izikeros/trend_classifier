@@ -36,7 +36,7 @@ target-version = ["py38"]
 
 [project]
 name = "trend-classifier"
-version = "0.2.0"
+version = "0.2.1"
 description = "Package for automated signal segmentation, trend classification and analysis."
 authors = [
     { name = "Krystian Safjan", email = "ksafjan@gmail.com" },
