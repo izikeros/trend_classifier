@@ -8,7 +8,7 @@
 [![flake8](https://github.com/izikeros/trend_classifier/actions/workflows/flake8.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/flake8.yml)
 [![pytest](https://github.com/izikeros/trend_classifier/actions/workflows/tests_with_tox.yml/badge.svg)](https://github.com/izikeros/trend_classifier/actions/workflows/pytest.yml)
 [![Maintainability](https://api.codeclimate.com/v1/badges/081a20bb8a5201cd8faf/maintainability)](https://codeclimate.com/github/izikeros/trend_classifier/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/081a20bb8a5201cd8faf/test_coverage)](https://codeclimate.com/github/izikeros/trend_classifier/test_coverage)
+[![codecov](https://codecov.io/gh/izikeros/trend_classifier/graph/badge.svg?token=ZC9GNJEQQ0)](https://codecov.io/gh/izikeros/trend_classifier)
 
 Library for automated signal segmentation, trend classification and analysis.
 
