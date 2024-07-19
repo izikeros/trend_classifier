@@ -4,7 +4,7 @@
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-added-large-files   # prevents giant files from being committed.
       - id: check-case-conflict       # checks for files that would conflict in case-insensitive filesystems.
@@ -20,7 +20,7 @@ repos:
 
   # A tool to automatically upgrade syntax for newer versions of the python language.
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.1
+    rev: v3.16.0
     hooks:
       - id: pyupgrade
         args: [ --py39-plus ]
@@ -44,17 +44,17 @@ repos:
 
   # The uncompromising code formatter
   - repo: https://github.com/psf/black
-    rev: 24.3.0
+    rev: 24.4.2
     hooks:
       - id: black
 
   # A tool to automatically fix common style issues in Python code. Has plugins.
   - repo: https://github.com/pycqa/flake8
-    rev: '7.0.0'
+    rev: '7.1.0'
     hooks:
       - id: flake8
         exclude: (__pycache__|.venv|tmp|.tox)
-        additional_dependencies: [ flake8-import-order, flake8-bugbear ]
+        additional_dependencies: [ flake8-docstrings flake8-bugbear ]
 
   # Find common security issues in your Python code using bandit.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
