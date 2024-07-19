@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 import pytest
-
 from trend_classifier import Segmenter
 
 
