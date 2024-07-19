@@ -49,31 +49,31 @@ split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
     # Replace issue numbers
-    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](<REPO>/issues/${2}))"},
-     # Check spelling of the commit with https://github.com/crate-ci/typos
-     #  (brew install typos-cli)
-     # If the spelling is incorrect, it will be automatically fixed.
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](<REPO>/issues/${2}))" },
+    # Check spelling of the commit with https://github.com/crate-ci/typos
+    #  (brew install typos-cli)
+    # If the spelling is incorrect, it will be automatically fixed.
     { pattern = '.*', replace_command = 'typos --write-changes -' },
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
     { message = "^feat", group = "<!-- 0 -->🚀 Features" },
     { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
-#    { message = "^docs", group = "<!-- 3 -->📚 Documentation"}, #  skip = true
-#    { message = "^perf", group = "<!-- 4 -->⚡ Performance" },
-#    { message = "^refactor", group = "<!-- 2 -->🚜 Refactor"}, # skip = true
-#    { message = "^style", group = "<!-- 5 -->🎨 Styling"}, # skip = true
-#    { message = "^test", group = "<!-- 6 -->🧪 Testing"}, # skip = true
-#    { message = "^chore\\(release\\): prepare for"}, # skip = true
-#    { message = "^chore\\(deps.*\\)", skip = true },
-#    { message = "^chore\\(pr\\)", skip = true },
-#    { message = "^chore\\(pull\\)", skip = true },
-#    { message = "^chore|^ci", group = "<!-- 7 -->⚙️ Miscellaneous Tasks" },
+    { message = "^docs", group = "<!-- 3 -->📚 Documentation", skip = true },
+    { message = "^perf", group = "<!-- 4 -->⚡ Performance", skip = true },
+    { message = "^refactor", group = "<!-- 2 -->🚜 Refactor", skip = true },
+    { message = "^style", group = "<!-- 5 -->🎨 Styling", skip = true },
+    { message = "^test", group = "<!-- 6 -->🧪 Testing", skip = true },
+    { message = "^chore\\(release\\): prepare for", skip = true },
+    { message = "^chore\\(deps.*\\)", skip = true },
+    { message = "^chore\\(pr\\)", skip = true },
+    { message = "^chore\\(pull\\)", skip = true },
+    { message = "^chore|^ci", group = "<!-- 7 -->⚙️ Miscellaneous Tasks", skip = true },
     { body = ".*security", group = "<!-- 8 -->🛡️ Security" },
-#    { message = "^revert", group = "<!-- 9 -->◀️ Revert" },
-#    { message = "^build", group = "<!-- 10 -->📦 Build System" },
+    #    { message = "^revert", group = "<!-- 9 -->◀️ Revert" },
+    { message = "^build", group = "<!-- 10 -->📦 Build System", skip = true },
     { message = "^break", group = "<!-- 11 -->💥 Breaking Changes" },
-#    { message = "^.*", group = "<!-- 12 -->Other", skip = false },
+    { message = "^.*", group = "<!-- 12 -->Other", skip = true },
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
