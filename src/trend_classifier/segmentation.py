@@ -24,6 +24,7 @@ def calculate_error(
 ) -> float | None:
     """
     Calculate how much two parameters differ.
+
     Used e.g. to calculate how much the slopes of linear trends in two windows differ.
 
     Args:
