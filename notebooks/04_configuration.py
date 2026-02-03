@@ -47,7 +47,9 @@ warnings.filterwarnings("ignore")
 # Download data
 df = yf.download("AAPL", start="2018-09-15", end="2022-09-05", interval="1d", progress=False)
 x = list(range(len(df)))
-y = df["Adj Close"].tolist()
+# Handle multi-index columns from yfinance
+col = df["Adj Close"]
+y = col.squeeze().tolist() if hasattr(col, "squeeze") else col.tolist()
 
 print(f"Data: {len(df)} points")
 

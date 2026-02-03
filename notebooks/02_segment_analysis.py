@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: .venv
 #     language: python
 #     name: python3
 # ---
@@ -28,7 +28,6 @@
 # ## Setup
 
 # %%
-import pandas as pd
 import yfinance as yf
 
 from trend_classifier import Segmenter
@@ -37,7 +36,7 @@ from trend_classifier import Segmenter
 df = yf.download("AAPL", start="2018-09-15", end="2022-09-05", interval="1d", progress=False)
 
 # Create and calculate segments
-seg = Segmenter(df=df, column="Adj Close", n=20)
+seg = Segmenter(df=df, column="Close", n=20)
 seg.calculate_segments()
 
 print(f"Analyzing {len(seg.segments)} segments")

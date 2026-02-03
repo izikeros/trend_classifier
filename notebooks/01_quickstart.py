@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: .venv
 #     language: python
 #     name: python3
 # ---
@@ -47,7 +47,7 @@ print(f"Downloaded {len(df)} data points")
 
 # %%
 # Create segmenter - can pass DataFrame directly
-seg = Segmenter(df=df, column="Adj Close", n=20)
+seg = Segmenter(df=df, column="Close", n=20)
 
 # Calculate segments (this finds regions with similar trends)
 segments = seg.calculate_segments()

@@ -59,7 +59,9 @@ symbol = "BTC-USD"
 df = yf.download(symbol, start="2019-01-01", end="2022-12-31", interval="1d", progress=False)
 
 x = list(range(len(df)))
-y = df["Adj Close"].tolist()
+# Handle multi-index columns from yfinance
+col = df["Adj Close"]
+y = col.squeeze().tolist() if hasattr(col, "squeeze") else col.tolist()
 
 print(f"Downloaded {len(df)} data points for {symbol}")
 
