@@ -68,6 +68,7 @@ dev = [
     "bump-my-version>=0.28.0",
     "git-cliff>=2.0.0",
     "commitizen>=4.1.0",
+    "jupytext>=1.19.1",
 ]
 docs = [
     "mkdocs>=1.6.0",
