@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: .venv
 #     language: python
 #     name: python3
 # ---
@@ -48,7 +48,7 @@ warnings.filterwarnings("ignore")
 df = yf.download("AAPL", start="2018-09-15", end="2022-09-05", interval="1d", progress=False)
 x = list(range(len(df)))
 # Handle multi-index columns from yfinance
-col = df["Adj Close"]
+col = df["Close"]
 y = col.squeeze().tolist() if hasattr(col, "squeeze") else col.tolist()
 
 print(f"Data: {len(df)} points")
