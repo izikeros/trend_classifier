@@ -66,16 +66,23 @@ y = col.squeeze().tolist() if hasattr(col, "squeeze") else col.tolist()
 print(f"Downloaded {len(df)} data points for {symbol}")
 
 # %% [markdown]
-# ## The Optimization Objective
+# ## The Optimization Challenge
 #
-# We need to define what "good" segmentation means. 
-# The `calc_area_outside_trend()` method returns a measure of how well
-# the detected trends fit the data:
+# We need to define what "good" segmentation means. This is tricky because:
 #
-# - **Lower value** = Trends fit the data better
-# - **Higher value** = More deviation from detected trends
+# **The fitting error alone is NOT a good objective!**
 #
-# This is calculated as:
+# Why? More segments = better local fits = lower error. An optimizer will
+# find that creating hundreds of tiny segments minimizes fitting error,
+# but produces useless results.
+#
+# ### The Solution: Composite Objective
+#
+# We balance two competing goals:
+# 1. **Low fitting error** - trends should fit the data well
+# 2. **Reasonable segment count** - not too many, not too few
+#
+# The `calc_area_outside_trend()` metric:
 # ```
 # sum(|detrended_values|) / mean(y) / len(y)
 # ```
@@ -101,17 +108,30 @@ for n in [20, 60, 80]:
 # The objective function:
 # 1. Receives trial parameters from Optuna
 # 2. Creates a Segmenter with those parameters
-# 3. Returns the error metric to minimize
+# 3. Returns a **composite score** (not just fitting error!)
+#
+# Key insight: We penalize excessive segmentation to prevent over-fitting.
+
+# %%
+# Configuration for optimization
+TARGET_SEGMENTS = 30  # Desired number of segments (adjust based on your needs)
+SEGMENT_PENALTY_WEIGHT = 0.1  # How much to penalize deviation from target
 
 # %%
 if OPTUNA_AVAILABLE:
     def objective(trial):
-        """Optuna objective for Segmenter hyperparameter optimization."""
+        """Optuna objective for Segmenter hyperparameter optimization.
+        
+        Uses a composite score that balances:
+        - Fitting error (lower = better trend fit)
+        - Segment count (penalize too many or too few segments)
+        """
         # Define parameter search space
-        N = trial.suggest_int("N", 15, 80, step=5)
-        overlap = trial.suggest_float("overlap", 0.2, 0.7, step=0.1)
-        alpha = trial.suggest_float("alpha", 0.5, 5.0, step=0.5)
-        beta = trial.suggest_float("beta", 0.5, 5.0, step=0.5)
+        # Higher alpha/beta = fewer splits (more conservative)
+        N = trial.suggest_int("N", 20, 100, step=5)
+        overlap = trial.suggest_float("overlap", 0.2, 0.5, step=0.1)
+        alpha = trial.suggest_float("alpha", 1.0, 10.0, step=0.5)
+        beta = trial.suggest_float("beta", 1.0, 10.0, step=0.5)
         
         # Create config
         cfg = Config(
@@ -125,8 +145,30 @@ if OPTUNA_AVAILABLE:
         seg = Segmenter(x=x, y=y, config=cfg)
         seg.calculate_segments()
         
-        # Return error to minimize
-        return seg.calc_area_outside_trend()
+        # Component 1: Fitting error
+        error = seg.calc_area_outside_trend()
+        
+        # Component 2: Segment count penalty
+        # Quadratic penalty for deviating from target segment count
+        n_segments = len(seg.segments)
+        segment_deviation = ((n_segments - TARGET_SEGMENTS) / TARGET_SEGMENTS) ** 2
+        
+        # Component 3: Short segment penalty (optional)
+        # Penalize if any segment is too short (less than 5 data points)
+        if seg.segments:
+            min_seg_len = min(s.stop - s.start for s in seg.segments)
+            short_penalty = 0.1 if min_seg_len < 5 else 0
+        else:
+            short_penalty = 1.0  # Heavy penalty for no segments
+        
+        # Composite score
+        score = error + SEGMENT_PENALTY_WEIGHT * segment_deviation + short_penalty
+        
+        # Store segment count for later analysis
+        trial.set_user_attr("n_segments", n_segments)
+        trial.set_user_attr("fitting_error", error)
+        
+        return score
 
 # %% [markdown]
 # ## Run Optimization
@@ -157,16 +199,27 @@ if OPTUNA_AVAILABLE:
     for param, value in study.best_params.items():
         print(f"  {param}: {value}")
     
-    print(f"\nBest Error: {study.best_value:.6f}")
+    # Get detailed metrics from best trial
+    best_trial = study.best_trial
+    best_n_segments = best_trial.user_attrs.get("n_segments", "N/A")
+    best_fitting_error = best_trial.user_attrs.get("fitting_error", study.best_value)
+    
+    print(f"\nBest Composite Score: {study.best_value:.6f}")
+    print(f"Best Fitting Error: {best_fitting_error:.6f}")
+    print(f"Best Segment Count: {best_n_segments}")
     
     # Compare to default
     seg_default = Segmenter(x=x, y=y, config=Config())
     seg_default.calculate_segments()
     default_error = seg_default.calc_area_outside_trend()
+    default_n_segments = len(seg_default.segments)
     
-    improvement = (default_error - study.best_value) / default_error * 100
-    print(f"\nDefault Error: {default_error:.6f}")
-    print(f"Improvement: {improvement:.1f}%")
+    print(f"\nDefault Fitting Error: {default_error:.6f}")
+    print(f"Default Segment Count: {default_n_segments}")
+    
+    if isinstance(best_fitting_error, float):
+        improvement = (default_error - best_fitting_error) / default_error * 100
+        print(f"\nFitting Error Improvement: {improvement:.1f}%")
 
 # %% [markdown]
 # ## Visualize Optimized Results
@@ -185,6 +238,7 @@ if OPTUNA_AVAILABLE:
     
     seg_optimized = Segmenter(x=x, y=y, config=best_cfg)
     seg_optimized.calculate_segments()
+    optimized_error = seg_optimized.calc_area_outside_trend()
     
     # Compare default vs optimized
     fig, axes = plt.subplots(2, 1, figsize=(14, 8))
@@ -203,7 +257,7 @@ if OPTUNA_AVAILABLE:
     axes[1].plot(x, y, 'b-', alpha=0.5)
     for s in seg_optimized.segments:
         axes[1].axvline(x=s.start, color='green', linestyle='--', alpha=0.5)
-    axes[1].set_title(f"Optimized Config: {len(seg_optimized.segments)} segments, error={study.best_value:.6f}")
+    axes[1].set_title(f"Optimized Config: {len(seg_optimized.segments)} segments, error={optimized_error:.6f}")
     axes[1].set_xlabel("Index")
     axes[1].set_ylabel("Price")
     
@@ -268,22 +322,30 @@ if OPTUNA_AVAILABLE:
 # %% [markdown]
 # ## Tips for Optimization
 #
-# 1. **More trials = better results** but takes longer (try 200-500 for production)
+# ### 1. Adjust TARGET_SEGMENTS for your use case
+# - Short-term trading: more segments (50-100)
+# - Long-term analysis: fewer segments (10-30)
 #
-# 2. **Different assets may need different parameters** - optimize per asset class
+# ### 2. Tune SEGMENT_PENALTY_WEIGHT
+# - Higher (0.2-0.5): Strongly prefer target segment count
+# - Lower (0.01-0.05): Allow more flexibility, focus on fit quality
 #
-# 3. **Consider your goal**:
-#    - Fewer segments? Add penalty for segment count
-#    - Specific segment length? Add constraints
+# ### 3. More trials = better results
+# Try 200-500 trials for production use
 #
-# 4. **Custom objective example** - penalize too many segments:
-#    ```python
-#    def custom_objective(trial):
-#        # ... create segmenter ...
-#        error = seg.calc_area_outside_trend()
-#        n_segments = len(seg.segments)
-#        return error + 0.001 * n_segments  # Penalty for more segments
-#    ```
+# ### 4. Different assets may need different parameters
+# Consider optimizing per asset class (stocks vs crypto vs forex)
+#
+# ### 5. Alternative objective: Only penalize excessive segments
+# ```python
+# def objective_max_segments(trial):
+#     # ... create segmenter ...
+#     error = seg.calc_area_outside_trend()
+#     n_segments = len(seg.segments)
+#     # Only penalize if exceeding maximum
+#     penalty = 0.01 * max(0, n_segments - 50)
+#     return error + penalty
+# ```
 
 # %% [markdown]
 # ## Conclusion
