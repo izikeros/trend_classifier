@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Union
 
 import numpy as np
 
@@ -16,7 +15,7 @@ from trend_classifier.visuals import (
 )
 
 logger = logging.getLogger(__name__)
-FigSize = tuple[Union[float, int], Union[float, int]]
+FigSize = tuple[float | int, float | int]
 
 
 def calculate_error(
@@ -182,7 +181,7 @@ class Segmenter:
         # add last segment
         last_segment = Segment(
             start=int(new_segment["s_start"]),
-            stop=int(len(self.x)),
+            stop=len(self.x),
             slopes=new_segment["slopes"],
             offsets=new_segment["offsets"],
             starts=new_segment["starts"],

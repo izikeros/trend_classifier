@@ -4,5 +4,5 @@ from trend_classifier.configuration import CONFIG_ABS, CONFIG_REL, Config
 from trend_classifier.segment import Segment
 from trend_classifier.segmentation import Segmenter
 
-__all__ = ["Segmenter", "Segment", "Config", "CONFIG_ABS", "CONFIG_REL"]
+__all__ = ["CONFIG_ABS", "CONFIG_REL", "Config", "Segment", "Segmenter"]
 __version__ = "0.2.3"

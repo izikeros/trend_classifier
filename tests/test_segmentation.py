@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+
 from trend_classifier.configuration import CONFIG_REL_SLOPE_ONLY
 from trend_classifier.segmentation import Segmenter
 
@@ -236,6 +237,7 @@ class TestSegmenterPlotting:
 def test_real_data():
     """Test the Segmenter with real stock market data (manual test)."""
     import yfinance as yf
+
     from trend_classifier import Segmenter
 
     df = yf.download(
