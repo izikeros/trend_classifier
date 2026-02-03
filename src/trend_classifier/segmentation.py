@@ -265,6 +265,17 @@ class Segmenter:
             xx = self.x[start : stop + 1]
             yy = self.y[start : stop + 1]
 
+            # Skip segments with insufficient data points
+            if len(xx) < 2:
+                y_norm.extend([0.0])
+                self.segments[idx].std = 0.0
+                self.segments[idx].span = 0.0
+                self.segments[idx].slope = 0.0
+                self.segments[idx].offset = 0.0
+                self.segments[idx].slopes_std = 0.0
+                self.segments[idx].offsets_std = 0.0
+                continue
+
             # trend calculation
             fit = np.polyfit(x=xx, y=yy, deg=1)
             fit_fn = np.poly1d(fit)
@@ -272,31 +283,35 @@ class Segmenter:
             # calculate point for the trend line
             yt = np.array(fit_fn(xx))
 
-            # FIXME: KS: 2022-09-02: Normalize (as below?)
-            # normalize each point in yy by value of corresponding point in yt,
-            # store results in ydtn
-            # ydtn = yy / yt
-
             ydt = np.array(yy) - yt
 
             # calculate standard deviation of the values with removed trend
-            s = np.std(ydt)
+            # Use ddof=0 to avoid warning when array has only 1 element
+            s = np.std(ydt, ddof=0) if len(ydt) > 0 else 0.0
 
             # calculate span of the values in the segment normalized by
             # the mean value of the segment
-            span = 1000 * (np.max(ydt) - np.min(ydt)) // np.mean(yy)
+            mean_yy = np.mean(yy)
+            if mean_yy != 0:
+                span = 1000 * (np.max(ydt) - np.min(ydt)) / abs(mean_yy)
+            else:
+                span = 0.0
 
             # store de-trended values
             y_norm.extend(ydt)
 
             # store volatility measures for the segment
-            self.segments[idx].std = s
-            self.segments[idx].span = span
+            self.segments[idx].std = float(s)
+            self.segments[idx].span = float(span)
             self.y_de_trended = y_norm
-            self.segments[idx].slope = fit[0]
-            self.segments[idx].offset = fit[1]
-            self.segments[idx].slopes_std = np.std(self.segments[idx].slopes)
-            self.segments[idx].offsets_std = np.std(self.segments[idx].offsets)
+            self.segments[idx].slope = float(fit[0])
+            self.segments[idx].offset = float(fit[1])
+
+            # Calculate std of slopes/offsets, handle single-element arrays
+            slopes = self.segments[idx].slopes
+            offsets = self.segments[idx].offsets
+            self.segments[idx].slopes_std = float(np.std(slopes, ddof=0)) if len(slopes) > 0 else 0.0
+            self.segments[idx].offsets_std = float(np.std(offsets, ddof=0)) if len(offsets) > 0 else 0.0
 
     def plot_segment(
         self,
