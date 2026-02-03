@@ -121,7 +121,11 @@ class Segmenter:
         # input data provided as dataframe
         if df is not None:
             self.x = list(range(0, len(df.index.tolist()), 1))
-            self.y = df[column].tolist()
+            # Handle both single-level and multi-level column indices (yfinance compatibility)
+            col_data = df[column]
+            if hasattr(col_data, "squeeze"):
+                col_data = col_data.squeeze()
+            self.y = col_data.tolist()
 
     def calculate_segments(self) -> list[Segment]:
         """Calculate segments with similar trend for the given timeserie.
