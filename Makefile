@@ -1,149 +1,164 @@
-.PHONY: clean lint test doc
-
-# main directory with source code
-PROJECT_NAME = trend_classifier
-
-# use open for macOS, xdg-open for Linux
-UNAME := $(shell uname -s)
-
-ifeq ($(UNAME), Linux)
-OPEN := xdg-open
-endif
-ifeq ($(UNAME), Darwin)
-OPEN := open
-endif
-
-## Delete all compiled Python files
-clean:
-	find . -type f -name "*.py[co]" -delete
-	find . -type d -name "__pycache__" -delete
-
-## Create a virtual environment in the .venv folder in current directory.
-create-venv:
-	@echo -e "$(COLOR_CYAN)Creating virtual environment in the project folder...$(COLOR_RESET)" && \
-	poetry config --local virtualenvs.in-project true
-	poetry shell
-
-## Lint package using pre-commit
-lint:
-	pre-commit run --all-files
-
-## Run tests using pytest
-test:
-	pytest tests/
-
-## Create coverage report for package
-coverage:
-	pytest --cov-report html --cov $(PROJECT_NAME) --verbose
-
-## Return coverage percentage for package
-coverage_num:
-	@pytest --cov $(PROJECT_NAME)
-	@coverage xml
-	@coverage report | tail -n 1 | awk -F' ' '{print $$6}'
-
-## Show HTML report for trend_classifier package coverage
-coverage_show:
-	$(OPEN) htmlcov/index.html
-
-## Generate pdoc HTML documentation for trend_classifier package
-doc:
-	pdoc --force --html --output-dir ./docs $(PROJECT_NAME)
-	mv docs/$(PROJECT_NAME)/* docs
-	rmdir docs/$(PROJECT_NAME)
-
-## Generate pdoc HTML documentation for trend_classifier package and open in browser
-doc_view:
-	pdoc --force --html --output-dir ./docs $(PROJECT_NAME)
-	mv docs/$(PROJECT_NAME)/* docs
-	rmdir docs/$(PROJECT_NAME)
-	$(OPEN) ./docs/index.html
-
-## Generate requirements.txt and requirements-test.txt files
-reqs:
-	poetry export -f requirements.txt --output requirements.txt
-	poetry export -f requirements.txt --with test --output requirements-test.txt
-
-## Upgrade package versions for tox
-tox_reqs_update:
-	pip-upgrade tox-reqs/all.txt --skip-package-installation
-
-## Upgrade all (requirements used in tox envs, pyproject dependencies, pre-commit hooks)
-update: tox_reqs_update
-	pre-commit autoupdate
-	pre-commit gc
-	poetry update
-
-## Install poetry plugins.
-poetry-plugins:
-	@echo -e "$(COLOR_CYAN)Installing poetry plugins...$(COLOR_RESET)" && \
-	poetry self add poetry-audit-plugin
-	poetry self add poetry-plugin-export
-
-## Run the check for vulnerabilities in the dependencies.
-audit:
-	# NOTE: This requires the 'poetry-audit-plugin' to be installed.
-	# to install use e.g. $ poetry self add poetry-audit-plugin
-	@echo -e "$(COLOR_CYAN)Running security audit based on 'safety'...$(COLOR_RESET)"
-	poetry audit
-
-#################################################################################
-# Self Documenting Commands                                                     #
-#################################################################################
+.PHONY: help install dev test test-cov lint format type-check security clean build publish docs serve-docs changelog update-changelog release-patch release-minor release-major version-patch version-minor version-major show-version preview-release-notes
 
 .DEFAULT_GOAL := help
 
-# Inspired by <http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html>
-# sed script explained:
-# /^##/:
-# 	* save line in hold space
-# 	* purge line
-# 	* Loop:
-# 		* append newline + line to hold space
-# 		* go to next line
-# 		* if line starts with doc comment, strip comment character off and loop
-# 	* remove target prerequisites
-# 	* append hold space (+ newline) to line
-# 	* replace newline plus comments by `---`
-# 	* print line
-# Separate expressions are necessary because labels cannot be delimited by
-# semicolon; see <http://stackoverflow.com/a/11799865/1968>
-.PHONY: help
 help:
-	@echo "$$(tput bold)Available rules:$$(tput sgr0)"
-	@echo
-	@sed -n -e "/^## / { \
-		h; \
-		s/.*//; \
-		:doc" \
-		-e "H; \
-		n; \
-		s/^## //; \
-		t doc" \
-		-e "s/:.*//; \
-		G; \
-		s/\\n## /---/; \
-		s/\\n/ /g; \
-		p; \
-	}" ${MAKEFILE_LIST} \
-	| LC_ALL='C' sort --ignore-case \
-	| awk -F '---' \
-		-v ncol=$$(tput cols) \
-		-v indent=19 \
-		-v col_on="$$(tput setaf 6)" \
-		-v col_off="$$(tput sgr0)" \
-	'{ \
-		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
-		n = split($$2, words, " "); \
-		line_length = ncol - indent; \
-		for (i = 1; i <= n; i++) { \
-			line_length -= length(words[i]) + 1; \
-			if (line_length <= 0) { \
-				line_length = ncol - indent - length(words[i]) - 1; \
-				printf "\n%*s ", -indent, " "; \
-			} \
-			printf "%s ", words[i]; \
-		} \
-		printf "\n"; \
-	}' \
-	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')
+	@echo "Development Commands"
+	@echo "===================="
+	@echo ""
+	@echo "Setup:"
+	@echo "  make install      Install package"
+	@echo "  make dev          Install with dev dependencies + pre-commit"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test         Run tests"
+	@echo "  make test-cov     Run tests with coverage report"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  make lint         Run linters"
+	@echo "  make format       Auto-format code"
+	@echo "  make type-check   Run type checker"
+	@echo "  make security     Run security checks"
+	@echo "  make commit       Interactive conventional commit"
+	@echo ""
+	@echo "Build & Release:"
+	@echo "  make clean        Clean build artifacts"
+	@echo "  make build        Build package"
+	@echo "  make publish      Publish to PyPI"
+	@echo "  make changelog    Update CHANGELOG.md"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make docs         Build documentation"
+	@echo "  make serve-docs   Serve docs locally"
+	@echo ""
+	@echo "Release:"
+	@echo "  make release-patch  Full release: test, bump, changelog, commit, tag, push, GitHub release"
+	@echo "  make release-minor  Full release: test, bump, changelog, commit, tag, push, GitHub release"
+	@echo "  make release-major  Full release: test, bump, changelog, commit, tag, push, GitHub release"
+	@echo "  make show-version   Show current version"
+	@echo "  make preview-release-notes  Preview release notes for current version"
+
+install:
+	uv sync
+
+dev:
+	uv sync --group dev --group docs
+	uv run pre-commit install --hook-type commit-msg --hook-type pre-commit
+
+test:
+	uv run pytest
+
+test-cov:
+	uv run pytest --cov --cov-report=html --cov-report=xml
+
+lint:
+	uv run ruff check src/ tests/
+	uv run ruff format --check src/ tests/
+
+format:
+	uv run ruff format src/ tests/
+	uv run ruff check --fix src/ tests/
+
+type-check:
+	uv run ty check src/
+
+security:
+	uv run bandit -r src/
+	uv run pip-audit
+
+commit:
+	uv run cz commit
+
+clean:
+	rm -rf build/ dist/ *.egg-info .pytest_cache .coverage htmlcov/ site/ .ruff_cache/ .mypy_cache/
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+build: clean
+	uv build
+
+publish: build
+	uv run twine check dist/*
+	uv run twine upload dist/*
+
+publish-test: build
+	uv run twine check dist/*
+	uv run twine upload --repository testpypi dist/*
+
+docs:
+	uv sync --group docs
+	uv run mkdocs build
+
+serve-docs:
+	uv sync --group docs
+	uv run mkdocs serve
+
+changelog:
+	uv run git-cliff -o CHANGELOG.md
+
+update-changelog: changelog
+
+# Version bump only (no commit/tag/push)
+version-patch:
+	uv run bump-my-version bump patch
+
+version-minor:
+	uv run bump-my-version bump minor
+
+version-major:
+	uv run bump-my-version bump major
+
+show-version:
+	@uv run bump-my-version show current_version
+
+preview-release-notes:
+	@VERSION=$$(uv run bump-my-version show current_version); \
+	echo "Release notes for v$$VERSION:"; \
+	echo "---"; \
+	awk "/^## \[$$VERSION\]/{flag=1; next} /^## \[/{if(flag) exit} flag" CHANGELOG.md
+
+# Fully automated release targets
+release-patch:
+	@$(MAKE) _do-release BUMP=patch
+
+release-minor:
+	@$(MAKE) _do-release BUMP=minor
+
+release-major:
+	@$(MAKE) _do-release BUMP=major
+
+# Internal release target - do not call directly
+_do-release: clean test-cov security lint
+	@echo "Starting release process ($(BUMP))..."
+	uv run bump-my-version bump $(BUMP)
+	@echo "Updating changelog..."
+	$(MAKE) update-changelog
+	@echo "Extracting release notes..."
+	$(MAKE) _extract-release-notes
+	@echo "Committing changes..."
+	git add -A
+	git commit -m "chore(release): bump version to $$(uv run bump-my-version show current_version)"
+	@echo "Creating tag..."
+	git tag "v$$(uv run bump-my-version show current_version)"
+	@echo "Pushing to origin..."
+	git push origin main --tags
+	@echo "Creating GitHub release..."
+	gh release create "v$$(uv run bump-my-version show current_version)" \
+		--title "Release $$(uv run bump-my-version show current_version)" \
+		--notes-file release_notes.md \
+		--latest
+	@rm -f release_notes.md
+	@echo ""
+	@echo "Release v$$(uv run bump-my-version show current_version) complete!"
+	@echo "PyPI publication will happen automatically via GitHub Actions."
+
+# Extract release notes for current version from CHANGELOG.md
+_extract-release-notes:
+	@VERSION=$$(uv run bump-my-version show current_version); \
+	awk "/^## \[$$VERSION\]/{flag=1; next} /^## \[/{if(flag) exit} flag" CHANGELOG.md > release_notes.md; \
+	if [ ! -s release_notes.md ]; then \
+		echo "Release $$VERSION" > release_notes.md; \
+	fi
+
+ci-check: lint type-check security test-cov
+	@echo "All CI checks passed!"
