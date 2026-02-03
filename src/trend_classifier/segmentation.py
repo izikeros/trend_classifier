@@ -19,10 +19,12 @@ FigSize = tuple[float | int, float | int]
 
 
 def calculate_error(
-    a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR
-) -> float | None:
-    """
-    Calculate how much two parameters differ.
+    a: float,
+    b: float,
+    metrics: Metrics = Metrics.ABSOLUTE_ERROR,
+    min_denom: float = 1e-6,
+) -> float:
+    """Calculate how much two parameters differ.
 
     Used e.g. to calculate how much the slopes of linear trends in two windows differ.
 
@@ -30,9 +32,10 @@ def calculate_error(
         a: First parameter.
         b: Second parameter.
         metrics: Metrics to use for the calculation.
+        min_denom: Minimum denominator for relative error to avoid division by near-zero.
 
     Returns:
-        Measure of difference between the two parameters, or None if calculation is not possible.
+        Measure of difference between the two parameters.
 
     See Also:
         class `Metrics`
@@ -43,9 +46,8 @@ def calculate_error(
     if metrics == Metrics.ABSOLUTE_ERROR:
         return abs(a - b)
     elif metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        if a == 0:
-            return None  # Cannot calculate relative error when denominator is zero
-        return abs(a - b) / abs(a)
+        # Use min_denom to avoid explosion when a is near zero
+        return abs(a - b) / max(abs(a), min_denom)
     else:
         raise ValueError(f"Unsupported metrics: {metrics}")
 
@@ -97,11 +99,15 @@ class Segmenter:
 
     def _handle_input_data(self, column, df, x, y):
         # --- Handle input data
-        # error - most likely pandas dataframe as argument instead of kwarg
-        if x is not None and not isinstance(x, list):
-            # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
+        # Accept numpy arrays, lists, or array-like objects
+        if (
+            x is not None
+            and not isinstance(x, (list, np.ndarray))
+            and not (hasattr(x, "__len__") and hasattr(x, "__getitem__"))
+        ):
             raise TypeError(
-                f"x must be a list, got {type(x)}. For pandas dataframe use 'df' keyword argument"
+                f"x must be a list or array-like, got {type(x)}. "
+                "For pandas dataframe use 'df' keyword argument"
             )
         # error - no input data provided
         if x is None and y is None and df is None:
@@ -111,35 +117,55 @@ class Segmenter:
             raise ValueError(
                 "Provide timeseries data: either (x and y) or (df), not all."
             )
-        # input data provided as x and y
+        # input data provided as x and y - convert to numpy arrays for efficiency
         if x is not None and y is not None:
-            self.x = x
-            self.y = y
-        # make warning if column provided but not dataframe
-        # if df is None and column is not None:
-        #     logger.warning("No dataframe provided, column argument will be ignored.")
+            self.x = np.asarray(x, dtype=np.float64)
+            self.y = np.asarray(y, dtype=np.float64)
         # input data provided as dataframe
         if df is not None:
-            self.x = list(range(0, len(df.index.tolist()), 1))
+            self.x = np.arange(len(df), dtype=np.float64)
             # Handle both single-level and multi-level column indices (yfinance compatibility)
             col_data = df[column]
             if hasattr(col_data, "squeeze"):
                 col_data = col_data.squeeze()
-            self.y = col_data.tolist()
+            self.y = np.asarray(col_data.values, dtype=np.float64)
 
-    def calculate_segments(self) -> list[Segment]:
+    def calculate_segments(self, progress_callback=None) -> list[Segment]:
         """Calculate segments with similar trend for the given timeserie.
 
         Calculates:
          - boundaries of segments
-        - slopes and offsets of windows
+         - slopes and offsets of windows
 
+        Args:
+            progress_callback: Optional callback function(current, total) for progress reporting.
+                Useful for long sequences. Called periodically during processing.
+
+        Returns:
+            List of detected Segment objects.
+
+        Raises:
+            ValueError: If x and y are not initialized or data is too short.
         """
         # check if initialized x and y
         if self.x is None or self.y is None:
             raise ValueError("Segmenter x and y must be initialized!")
+
         # Read data from config to short variables
         n = self.config.N
+
+        # Validate data length
+        data_len = len(self.x)
+        if data_len < n:
+            raise ValueError(
+                f"Data length ({data_len}) must be at least window size N ({n}). "
+                f"Reduce N or provide more data."
+            )
+        if data_len < 2 * n:
+            logger.warning(
+                f"Data length ({data_len}) is less than 2*N ({2 * n}). "
+                "Results may be limited to a single segment."
+            )
         overlap_ratio = self.config.overlap_ratio
         alpha = self.config.alpha
         beta = self.config.beta
@@ -154,7 +180,14 @@ class Segmenter:
 
         off = self._set_offset(n, overlap_ratio)
 
-        for start in range(0, len(self.x) - n, off):
+        # Calculate total iterations for progress reporting
+        total_iterations = max(1, (len(self.x) - n) // off)
+
+        for iteration, start in enumerate(range(0, len(self.x) - n, off)):
+            # Report progress if callback provided (every 100 iterations)
+            if progress_callback is not None and iteration % 100 == 0:
+                progress_callback(iteration, total_iterations)
+
             end = start + n
             fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
             new_segment["slopes"].append(fit[0])
@@ -310,8 +343,12 @@ class Segmenter:
             # Calculate std of slopes/offsets, handle single-element arrays
             slopes = self.segments[idx].slopes
             offsets = self.segments[idx].offsets
-            self.segments[idx].slopes_std = float(np.std(slopes, ddof=0)) if len(slopes) > 0 else 0.0
-            self.segments[idx].offsets_std = float(np.std(offsets, ddof=0)) if len(offsets) > 0 else 0.0
+            self.segments[idx].slopes_std = (
+                float(np.std(slopes, ddof=0)) if len(slopes) > 0 else 0.0
+            )
+            self.segments[idx].offsets_std = (
+                float(np.std(offsets, ddof=0)) if len(offsets) > 0 else 0.0
+            )
 
     def plot_segment(
         self,
