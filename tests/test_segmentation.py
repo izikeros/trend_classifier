@@ -191,14 +191,18 @@ class TestCalculateSegments:
 
     def test__set_offset(self):
         """Test setting of offset based on overlap ratio."""
-        self.seg = Segmenter(x=[], y=[])
-        offset = self.seg._set_offset(n=100, overlap_ratio=0.2)
+        from trend_classifier.detectors import SlidingWindowDetector
+
+        detector = SlidingWindowDetector(n=100, overlap_ratio=0.2)
+        offset = detector._calculate_offset()
         assert offset == 20
 
     def test__set_offset__adjust_to_one(self):
         """Test adjustment of offset to 1 for small overlap ratios."""
-        self.seg = Segmenter(x=[], y=[])
-        offset = self.seg._set_offset(n=10, overlap_ratio=0.001)
+        from trend_classifier.detectors import SlidingWindowDetector
+
+        detector = SlidingWindowDetector(n=10, overlap_ratio=0.001)
+        offset = detector._calculate_offset()
         assert offset == 1
 
 
