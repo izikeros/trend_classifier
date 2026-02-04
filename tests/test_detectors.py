@@ -50,10 +50,12 @@ class TestSlidingWindowDetector:
     def setup_method(self):
         """Set up test data."""
         self.x = np.arange(200, dtype=np.float64)
-        self.y = np.concatenate([
-            np.linspace(0, 50, 100),
-            np.linspace(50, 20, 100),
-        ])
+        self.y = np.concatenate(
+            [
+                np.linspace(0, 50, 100),
+                np.linspace(50, 20, 100),
+            ]
+        )
 
     def test_basic_detection(self):
         """Test basic segment detection."""
@@ -114,10 +116,12 @@ class TestBottomUpDetector:
     def setup_method(self):
         """Set up test data."""
         self.x = np.arange(200, dtype=np.float64)
-        self.y = np.concatenate([
-            np.linspace(0, 50, 100),
-            np.linspace(50, 20, 100),
-        ])
+        self.y = np.concatenate(
+            [
+                np.linspace(0, 50, 100),
+                np.linspace(50, 20, 100),
+            ]
+        )
 
     def test_basic_detection(self):
         """Test basic segment detection."""
@@ -167,10 +171,12 @@ class TestPELTDetector:
     def setup_method(self):
         """Set up test data."""
         self.x = np.arange(200, dtype=np.float64)
-        self.y = np.concatenate([
-            np.linspace(0, 50, 100),
-            np.linspace(50, 20, 100),
-        ])
+        self.y = np.concatenate(
+            [
+                np.linspace(0, 50, 100),
+                np.linspace(50, 20, 100),
+            ]
+        )
 
     def test_basic_detection(self):
         """Test basic segment detection."""
