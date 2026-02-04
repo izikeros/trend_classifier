@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.1
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: .venv
 #     language: python
 #     name: python3
 # ---
@@ -43,7 +43,7 @@ warnings.filterwarnings("ignore")
 df = yf.download("AAPL", start="2018-09-15", end="2022-09-05", interval="1d", progress=False)
 
 # Use CONFIG_REL for more segments to classify
-seg = Segmenter(df=df, column="Adj Close", config=CONFIG_REL)
+seg = Segmenter(df=df, column="Close", config=CONFIG_REL)
 seg.calculate_segments()
 
 print(f"Classifying {len(seg.segments)} segments")

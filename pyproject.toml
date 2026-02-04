@@ -73,6 +73,7 @@ dev = [
     "pip>=26.0",
     "yfinance>=1.1.0",
     "optuna>=3.0",
+    "scikit-learn>=1.7.2",
 ]
 docs = [
     "mkdocs>=1.6.0",

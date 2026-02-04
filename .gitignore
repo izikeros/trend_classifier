@@ -108,3 +108,5 @@ mypy.ini
 pytest.ini
 tox.ini
 cliff.toml
+Implementation_Review.txt
+*.csv

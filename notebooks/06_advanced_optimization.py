@@ -60,7 +60,7 @@ df = yf.download(symbol, start="2019-01-01", end="2022-12-31", interval="1d", pr
 
 x = list(range(len(df)))
 # Handle multi-index columns from yfinance
-col = df["Adj Close"]
+col = df["Close"]
 y = col.squeeze().tolist() if hasattr(col, "squeeze") else col.tolist()
 
 print(f"Downloaded {len(df)} data points for {symbol}")
