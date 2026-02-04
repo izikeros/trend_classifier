@@ -87,6 +87,7 @@ nav:
     - Choose a Detector: how-to/choose-detector.md
     - Tune Parameters: how-to/tune-parameters.md
     - Export Results: how-to/export-results.md
+    - Setup GitHub Pages: how-to/setup-github-pages.md
   - Concepts:
     - Architecture: concepts/architecture.md
     - Algorithms: concepts/algorithms.md
