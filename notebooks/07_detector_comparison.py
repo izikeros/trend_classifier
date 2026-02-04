@@ -21,7 +21,7 @@
 # ## What You'll Learn
 # - Available detection algorithms
 # - How to switch between detectors
-# - Performance and quality comparison
+# - Performance and accuracy comparison
 # - When to use which detector
 #
 # ## Available Detectors
@@ -36,10 +36,12 @@
 # ## Setup
 
 # %%
+import time
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from trend_classifier import Segmenter, list_detectors
 
@@ -203,22 +205,145 @@ for name, data in results.items():
           f"{metrics['precision']:>10.2f} {metrics['recall']:>10.2f} {metrics['f1']:>10.2f}")
 
 # %% [markdown]
+# ## Accuracy Summary Table
+#
+# Combined metrics for all detectors:
+
+# %%
+# Build accuracy summary table
+accuracy_data = []
+for name, data in results.items():
+    metrics = evaluate_breakpoints(data["segments"], true_breakpoints)
+    accuracy_data.append({
+        "Detector": name,
+        "Segments": data["n_segments"],
+        "Fit Error": f"{data['error']:.6f}",
+        "Precision": f"{metrics['precision']:.2f}",
+        "Recall": f"{metrics['recall']:.2f}",
+        "F1 Score": f"{metrics['f1']:.2f}",
+    })
+
+accuracy_df = pd.DataFrame(accuracy_data)
+print("\n=== ACCURACY COMPARISON ===\n")
+print(accuracy_df.to_string(index=False))
+
+# %% [markdown]
+# ## Performance Benchmark
+#
+# Compare execution time across different data sizes.
+
+# %%
+def benchmark_detector(detector_name, x_data, y_data, params):
+    """Benchmark a single detector."""
+    start = time.perf_counter()
+    seg = Segmenter(x=x_data, y=y_data, detector=detector_name, detector_params=params)
+    seg.calculate_segments()
+    elapsed = time.perf_counter() - start
+    return elapsed * 1000  # Convert to ms
+
+# Data sizes to test
+sizes = [500, 2000, 10000]
+
+# Default parameters for each detector
+default_params = {
+    "sliding_window": {"n": 50},
+    "bottom_up": {"max_segments": 20},
+    "pelt": {"penalty": 20},
+}
+
+# Run benchmarks
+benchmark_results = {name: [] for name in list_detectors()}
+
+print("Running performance benchmarks...")
+for size in sizes:
+    # Generate test data
+    test_x = np.arange(size, dtype=np.float64)
+    test_y = np.cumsum(np.random.randn(size)) + np.sin(test_x / 100) * 10
+    
+    for detector_name in list_detectors():
+        params = default_params.get(detector_name, {})
+        # Average over 3 runs for stability
+        times = [benchmark_detector(detector_name, test_x, test_y, params) for _ in range(3)]
+        avg_time = np.mean(times)
+        benchmark_results[detector_name].append(avg_time)
+    
+    print(f"  {size} points: done")
+
+# %% [markdown]
+# ### Performance Results Table
+
+# %%
+# Build performance table
+perf_data = []
+for detector_name in list_detectors():
+    row = {"Detector": detector_name}
+    for i, size in enumerate(sizes):
+        row[f"{size} pts"] = f"{benchmark_results[detector_name][i]:.1f} ms"
+    perf_data.append(row)
+
+perf_df = pd.DataFrame(perf_data)
+print("\n=== PERFORMANCE COMPARISON ===\n")
+print(perf_df.to_string(index=False))
+
+# %% [markdown]
+# ### Performance Visualization
+
+# %%
+fig, ax = plt.subplots(figsize=(10, 5))
+
+bar_width = 0.25
+x_positions = np.arange(len(sizes))
+colors = {"sliding_window": "#2ecc71", "bottom_up": "#e67e22", "pelt": "#9b59b6"}
+
+for i, detector_name in enumerate(list_detectors()):
+    offset = (i - len(list_detectors()) / 2 + 0.5) * bar_width
+    ax.bar(
+        x_positions + offset,
+        benchmark_results[detector_name],
+        bar_width,
+        label=detector_name,
+        color=colors.get(detector_name, "gray"),
+    )
+
+ax.set_xlabel("Data Size (points)")
+ax.set_ylabel("Time (ms)")
+ax.set_title("Performance Comparison by Data Size")
+ax.set_xticks(x_positions)
+ax.set_xticklabels([str(s) for s in sizes])
+ax.legend()
+ax.set_yscale("log")
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
 # ## When to Use Which Detector
 #
 # ### Sliding Window (`sliding_window`)
 # - **Pros**: Interpretable, configurable sensitivity, good for most cases
 # - **Cons**: Sensitive to window size, may miss abrupt changes
 # - **Best for**: General use, when you need explainability
+# - **Complexity**: O(n)
 #
 # ### Bottom-Up (`bottom_up`)
 # - **Pros**: Control exact segment count, good for noisy data
-# - **Cons**: Computationally heavier, may not find optimal breakpoints
+# - **Cons**: Computationally heavier O(n²), may not find optimal breakpoints
 # - **Best for**: When you know desired segment count, noisy signals
 #
 # ### PELT (`pelt`)
-# - **Pros**: Optimal segmentation, fast (O(n)), well-studied algorithm
+# - **Pros**: Optimal segmentation, fast O(n), well-studied algorithm
 # - **Cons**: Requires ruptures library, penalty tuning needed
 # - **Best for**: Large datasets, when optimal segmentation matters
+
+# %% [markdown]
+# ## Recommendation Summary
+#
+# | Use Case | Recommended Detector |
+# |----------|---------------------|
+# | Quick analysis | `sliding_window` |
+# | Exact segment count needed | `bottom_up` |
+# | Large dataset (>10k points) | `pelt` |
+# | Interpretable results | `sliding_window` |
+# | Optimal change point detection | `pelt` |
 
 # %% [markdown]
 # ## Using Custom Detector Instances
@@ -243,36 +368,12 @@ print(f"Custom detector found {len(result.segments)} segments")
 print(f"Algorithm metadata: {result.metadata}")
 
 # %% [markdown]
-# ## Performance Comparison
-#
-# Compare execution time for each detector:
-
-# %%
-import time
-
-# Generate larger dataset for timing
-large_x = np.arange(5000, dtype=np.float64)
-large_y = np.cumsum(np.random.randn(5000)) + np.sin(large_x / 100) * 10
-
-print("Performance on 5000 data points:")
-print("-" * 40)
-
-for detector_name in list_detectors():
-    params = {"n": 50} if detector_name == "sliding_window" else {"max_segments": 20} if detector_name == "bottom_up" else {"penalty": 20}
-    
-    start = time.perf_counter()
-    seg = Segmenter(x=large_x, y=large_y, detector=detector_name, detector_params=params)
-    seg.calculate_segments()
-    elapsed = time.perf_counter() - start
-    
-    print(f"{detector_name:<20}: {elapsed*1000:>8.2f} ms, {len(seg.segments)} segments")
-
-# %% [markdown]
 # ## Conclusion
 #
 # You've learned:
 # - How to use different detection algorithms
 # - How to compare their results visually and quantitatively
+# - Performance characteristics of each algorithm
 # - When to choose each algorithm
 #
 # **Recommendation**: Start with `sliding_window` for most cases. Use `pelt` for
