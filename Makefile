@@ -132,7 +132,7 @@ _do-release: clean test-cov security lint
 	@echo "Starting release process ($(BUMP))..."
 	uv run bump-my-version bump $(BUMP)
 	@echo "Updating changelog..."
-	$(MAKE) update-changelog
+	droid exec "Analyze git history and generate (if missing) or update changelog. There are tags in the git history - take look at the changes between the tags and generate/update changelog for each version."
 	@echo "Extracting release notes..."
 	$(MAKE) _extract-release-notes
 	@echo "Committing changes..."
