@@ -36,6 +36,16 @@ dependencies = [
     "pandas>=1.3.0",
 ]
 
+[project.optional-dependencies]
+pelt = ["ruptures>=1.1.0"]
+optimization = ["optuna>=3.0"]
+ml = ["scikit-learn>=1.0"]
+all = [
+    "ruptures>=1.1.0",
+    "optuna>=3.0",
+    "scikit-learn>=1.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/izikeros/trend_classifier"
 Documentation = "https://izikeros.github.io/trend_classifier"
