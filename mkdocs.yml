@@ -1,0 +1,106 @@
+site_name: trend_classifier
+site_description: Automated signal segmentation, trend classification and analysis
+site_author: Krystian Safjan
+site_url: https://izikeros.github.io/trend_classifier
+
+repo_name: izikeros/trend_classifier
+repo_url: https://github.com/izikeros/trend_classifier
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocs-jupyter:
+      include: ["*.ipynb"]
+      execute: false
+      allow_errors: true
+      include_source: true
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            heading_level: 2
+            members_order: source
+            docstring_style: google
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - Tutorials:
+    - Overview: tutorials/index.md
+    - Segment Analysis: tutorials/02_segment_analysis.ipynb
+    - Visualization: tutorials/03_visualization.ipynb
+    - Configuration: tutorials/04_configuration.ipynb
+    - Classification: tutorials/05_classification.ipynb
+    - Hyperparameter Optimization: tutorials/06_advanced_optimization.ipynb
+    - Detector Comparison: tutorials/07_detector_comparison.ipynb
+  - How-To Guides:
+    - Choose a Detector: how-to/choose-detector.md
+    - Tune Parameters: how-to/tune-parameters.md
+    - Export Results: how-to/export-results.md
+  - Concepts:
+    - Architecture: concepts/architecture.md
+    - Algorithms: concepts/algorithms.md
+  - API Reference:
+    - Segmenter: reference/api/segmenter.md
+    - Detectors: reference/api/detectors.md
+    - Segment: reference/api/segment.md
+    - Configuration: reference/api/config.md
+  - Changelog: reference/changelog.md
+  - Contributing: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/izikeros
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/trend-classifier/
