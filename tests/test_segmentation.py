@@ -247,5 +247,5 @@ def test_real_data():
     df = yf.download(
         "AAPL", start="2018-09-15", end="2022-09-06", interval="1d", progress=False
     )
-    seg = Segmenter(df=df, column="Adj Close", n=20)
+    seg = Segmenter(df=df, column="Close", n=20)
     seg.calculate_segments()

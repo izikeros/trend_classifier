@@ -26,7 +26,7 @@ def apple_stock_data():
 
 def test_readme_example(apple_stock_data):
     x_in = list(range(0, len(apple_stock_data.index), 1))
-    y_in = apple_stock_data["Adj Close"].tolist()
+    y_in = apple_stock_data["Close"].tolist()
     seg = Segmenter(x_in, y_in, n=20)
     seg.calculate_segments()
 

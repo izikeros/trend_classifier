@@ -86,7 +86,7 @@ class Segmenter:
         x: list | np.ndarray | None = None,
         y: list | np.ndarray | None = None,
         df: pd.DataFrame | None = None,
-        column: str = "Adj Close",
+        column: str = "Close",
         config: Config | None = None,
         n: int | None = None,
         # New API parameters
