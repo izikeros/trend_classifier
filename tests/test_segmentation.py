@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+
 from trend_classifier.configuration import CONFIG_REL_SLOPE_ONLY
 from trend_classifier.segmentation import Segmenter
 
@@ -190,14 +191,18 @@ class TestCalculateSegments:
 
     def test__set_offset(self):
         """Test setting of offset based on overlap ratio."""
-        self.seg = Segmenter(x=[], y=[])
-        offset = self.seg._set_offset(n=100, overlap_ratio=0.2)
+        from trend_classifier.detectors import SlidingWindowDetector
+
+        detector = SlidingWindowDetector(n=100, overlap_ratio=0.2)
+        offset = detector._calculate_offset()
         assert offset == 20
 
     def test__set_offset__adjust_to_one(self):
         """Test adjustment of offset to 1 for small overlap ratios."""
-        self.seg = Segmenter(x=[], y=[])
-        offset = self.seg._set_offset(n=10, overlap_ratio=0.001)
+        from trend_classifier.detectors import SlidingWindowDetector
+
+        detector = SlidingWindowDetector(n=10, overlap_ratio=0.001)
+        offset = detector._calculate_offset()
         assert offset == 1
 
 
@@ -236,10 +241,11 @@ class TestSegmenterPlotting:
 def test_real_data():
     """Test the Segmenter with real stock market data (manual test)."""
     import yfinance as yf
+
     from trend_classifier import Segmenter
 
     df = yf.download(
         "AAPL", start="2018-09-15", end="2022-09-06", interval="1d", progress=False
     )
-    seg = Segmenter(df=df, column="Adj Close", n=20)
+    seg = Segmenter(df=df, column="Close", n=20)
     seg.calculate_segments()

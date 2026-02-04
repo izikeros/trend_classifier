@@ -71,7 +71,7 @@ class Segmenter:
         x: list[int] | None = None,
         y: list[int] | None = None,
         df=None,
-        column: str | None = &#34;Adj Close&#34;,
+        column: str | None = &#34;Close&#34;,
         config: Config | None = None,
         n: int | None = None,
     ):
@@ -399,7 +399,7 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
 <dl>
 <dt id="trend_classifier.segmentation.Segmenter"><code class="flex name class">
 <span>class <span class="ident">Segmenter</span></span>
-<span>(</span><span>x: list[int] | None = None, y: list[int] | None = None, df=None, column: str | None = 'Adj Close', config: <a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a> | None = None, n: int | None = None)</span>
+<span>(</span><span>x: list[int] | None = None, y: list[int] | None = None, df=None, column: str | None = 'Close', config: <a title="trend_classifier.configuration.Config" href="configuration.html#trend_classifier.configuration.Config">Config</a> | None = None, n: int | None = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Class for segmenting a time series into segments with similar trend.</p>
@@ -431,7 +431,7 @@ def _determine_trend_end_point(off: int, start: int) -&gt; int:
         x: list[int] | None = None,
         y: list[int] | None = None,
         df=None,
-        column: str | None = &#34;Adj Close&#34;,
+        column: str | None = &#34;Close&#34;,
         config: Config | None = None,
         n: int | None = None,
     ):

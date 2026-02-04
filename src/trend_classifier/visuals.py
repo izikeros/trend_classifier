@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Union
-
 import numpy as np
 from matplotlib import pyplot as plt
 
-FigSize = tuple[Union[float, int], Union[float, int]]
+FigSize = tuple[float | int, float | int]
 
 
 def _plot_detrended_signal(
@@ -127,7 +125,7 @@ def _plot_segment_with_trendlines_no_context(
     plt.plot(xx, yy, color=signal_color, linestyle="-", linewidth=2)
 
     for i, (start, slope, offset) in enumerate(
-        zip(segment.starts, segment.slopes, segment.offsets)
+        zip(segment.starts, segment.slopes, segment.offsets, strict=False)
     ):
         x = obj.x[start : obj.config.N + start]
         y = slope * np.array(x) + offset

@@ -1,3 +1,0 @@
-[bandit]
-targets: ./trend_classifier, ./tests
-skips: B101

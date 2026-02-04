@@ -1,71 +1,150 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.pdm]
-distribution = true
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "tox>=4.14.1",
-    "devtools>=0.12.2",
-    "black>=24.3.0",
-    "isort>=5.13.2",
-    "pdoc3>=0.10.0",
-    "portray>=1.8.0",
-    "yfinance>=0.2.40",
-    "tox-pyenv-redux>=1.1.0",
-    "ipykernel>=6.29.5",
-    "pip-tools>=7.4.1",
-    "pytest-icdiff>=0.9",
-    "pytest-clarity>=1.0.1",
-    "pytest-cov>=4.1.0",
-    "pytest-sugar>=1.0.0",
-    "bump2version>=1.0.1",
-]
-test = [
-    "pytest>=8.2.2",
-    "yfinance>=0.2.40",
-]
-
-[tool.pdm.build]
-includes = []
-
-[tool.black]
-target-version = ["py38"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "trend-classifier"
-version = "0.2.3"
+version = "0.3.0"
 description = "Package for automated signal segmentation, trend classification and analysis."
-authors = [
-    { name = "Krystian Safjan", email = "ksafjan@gmail.com" },
-]
-dependencies = [
-    "matplotlib",
-    "pydantic",
-    "numpy",
-    "pandas",
-    "eval-type-backport",
-]
-requires-python = "<=3.13,>=3.9"
 readme = "README.md"
-license = { text = "MIT" }
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Krystian Safjan", email = "ksafjan@gmail.com"}
+]
 keywords = ["trend", "timeseries", "classification", "segmentation", "analysis", "algotrading", "finance"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Programming Language :: Python :: 3 :: Only',
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Utilities"]
+    "Typing :: Typed",
+]
+dependencies = [
+    "matplotlib>=3.5.0",
+    "pydantic>=2.0.0",
+    "numpy>=1.21.0",
+    "pandas>=1.3.0",
+]
+
+[project.optional-dependencies]
+pelt = ["ruptures>=1.1.0"]
+optimization = ["optuna>=3.0"]
+ml = ["scikit-learn>=1.0"]
+all = [
+    "ruptures>=1.1.0",
+    "optuna>=3.0",
+    "scikit-learn>=1.0",
+]
+
 [project.urls]
-"Source" = "https://github.com/izikeros/trend_classifier"
+Homepage = "https://github.com/izikeros/trend_classifier"
+Documentation = "https://izikeros.github.io/trend_classifier"
+Repository = "https://github.com/izikeros/trend_classifier"
 "Bug Tracker" = "https://github.com/izikeros/trend_classifier/issues"
+Changelog = "https://github.com/izikeros/trend_classifier/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trend_classifier"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.9.0",
+    "ty>=0.0.1a23",
+    "pre-commit>=3.0.0",
+    "bandit[toml]>=1.7.5",
+    "pip-audit>=2.6.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
+    "bump-my-version>=0.28.0",
+    "git-cliff>=2.0.0",
+    "commitizen>=4.1.0",
+    "jupytext>=1.19.1",
+    "ipykernel>=7.1.0",
+    "pip>=26.0",
+    "yfinance>=1.1.0",
+    "optuna>=3.0",
+    "scikit-learn>=1.7.2",
+]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+test = [
+    "yfinance>=0.2.40",
+]
+
+[tool.bumpversion]
+current_version = "0.3.0"
+tag = false
+commit = false
+tag_name = "v{new_version}"
+message = "chore(release): bump version {current_version} → {new_version}"
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "src/trend_classifier/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.3.0"
+tag_format = "v$version"
+allowed_prefixes = ["Merge", "Revert", "Initial"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "--cov=src/trend_classifier",
+    "--cov-branch",
+    "--cov-report=term-missing",
+]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2

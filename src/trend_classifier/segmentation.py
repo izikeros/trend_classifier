@@ -1,12 +1,27 @@
+"""Segmenter facade with support for multiple detection algorithms.
+
+This module provides the main Segmenter class which serves as a facade
+for various trend detection algorithms. It maintains backward compatibility
+with the legacy API while enabling new features.
+
+For direct access to detection algorithms, see `trend_classifier.detectors`.
+"""
+
 from __future__ import annotations
 
-import logging
-from typing import Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from trend_classifier.configuration import Config
-from trend_classifier.models import Metrics
+from trend_classifier.detectors import (
+    DETECTOR_REGISTRY,
+    BaseDetector,
+    DetectionResult,
+    SlidingWindowDetector,
+    get_detector,
+)
+from trend_classifier.metrics import calculate_error
 from trend_classifier.segment import Segment, SegmentList
 from trend_classifier.visuals import (
     _plot_detrended_signal,
@@ -15,285 +30,240 @@ from trend_classifier.visuals import (
     _plot_segments,
 )
 
-logger = logging.getLogger(__name__)
-FigSize = tuple[Union[float, int], Union[float, int]]
+if TYPE_CHECKING:
+    import pandas as pd
 
+__all__ = ["Segmenter", "calculate_error"]
 
-def calculate_error(
-    a: float, b: float, metrics: Metrics = Metrics.ABSOLUTE_ERROR
-) -> float | None:
-    """
-    Calculate how much two parameters differ.
-
-    Used e.g. to calculate how much the slopes of linear trends in two windows differ.
-
-    Args:
-        a: First parameter.
-        b: Second parameter.
-        metrics: Metrics to use for the calculation.
-
-    Returns:
-        Measure of difference between the two parameters, or None if calculation is not possible.
-
-    See Also:
-        class `Metrics`
-    """
-    if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
-        raise ValueError("Both 'a' and 'b' must be numeric values.")
-
-    if metrics == Metrics.ABSOLUTE_ERROR:
-        return abs(a - b)
-    elif metrics == Metrics.RELATIVE_ABSOLUTE_ERROR:
-        if a == 0:
-            return None  # Cannot calculate relative error when denominator is zero
-        return abs(a - b) / abs(a)
-    else:
-        raise ValueError(f"Unsupported metrics: {metrics}")
+FigSize = tuple[float | int, float | int]
 
 
 class Segmenter:
-    """Class for segmenting a time series into segments with similar trend."""
+    """Facade for trend segmentation with multiple algorithm support.
+
+    This class provides a unified interface for segmenting time series data
+    into regions with similar trends. It supports multiple detection algorithms
+    and maintains backward compatibility with the legacy API.
+
+    Args:
+        x: Array of x values (indices or timestamps).
+        y: Array of y values (signal values).
+        df: Pandas DataFrame with time series data.
+        column: Column name to use from DataFrame.
+        config: Configuration for the sliding window detector (legacy).
+        n: Window size shortcut (legacy, use config instead).
+        detector: Detection algorithm to use. Can be:
+            - A string name: "sliding_window", "pelt", "bottom_up"
+            - A BaseDetector instance for custom configuration
+        detector_params: Parameters to pass to detector constructor
+            (only used when detector is a string).
+
+    Attributes:
+        x: Input x values as numpy array.
+        y: Input y values as numpy array.
+        segments: Detected segments (after calling calculate_segments).
+        y_de_trended: Detrended signal values.
+
+    Example (Legacy API - still works):
+        >>> seg = Segmenter(x=x, y=y, n=40)
+        >>> seg.calculate_segments()
+        >>> seg.plot_segments()
+
+    Example (New API - recommended):
+        >>> from trend_classifier.detectors import PELTDetector
+        >>> seg = Segmenter(x=x, y=y, detector="pelt", detector_params={"penalty": 5})
+        >>> result = seg.fit_detect()
+        >>> print(f"Found {len(result.segments)} segments")
+
+    Example (Custom detector):
+        >>> detector = PELTDetector(model="linear", penalty=3)
+        >>> seg = Segmenter(x=x, y=y, detector=detector)
+        >>> seg.calculate_segments()
+    """
 
     def __init__(
         self,
-        x: list[int] | None = None,
-        y: list[int] | None = None,
-        df=None,
-        column: str | None = "Adj Close",
+        x: list | np.ndarray | None = None,
+        y: list | np.ndarray | None = None,
+        df: pd.DataFrame | None = None,
+        column: str = "Close",
         config: Config | None = None,
         n: int | None = None,
+        # New API parameters
+        detector: str | BaseDetector = "sliding_window",
+        detector_params: dict | None = None,
     ):
-        """Initialize the segmenter.
-
-        Args:
-            x: List of x values.
-            y: List of y values.
-            df: Pandas DataFrame with time series.
-            column: Name of the column with the time series.
-            config: Configuration of the segmenter.
-            n: Number of samples in a window.
-        """
-        self._handle_configuration(config, n)
+        # Handle input data
         self._handle_input_data(column=column, df=df, x=x, y=y)
-        self.y_de_trended: list | None = None
-        self.segments: SegmentList[Segment] | None = None
-        self.slope: float | None = None
-        self.offset: float | None = None
-        self.slopes_std: float | None = None
-        self.offsets_std: float | None = None
 
-    def _handle_configuration(self, config, n):
-        # Handle configuration
-        if config is None:
-            # use default configuration if no configuration is provided
-            self.config = Config()
-            if n is not None:
-                # override default N in configuration if N is provided
-                self.config.N = n
-        if config is not None:
-            if n is not None:
-                # raise error
-                raise ValueError("Provide either config or N, not both.")
-            self.config = config
+        # Handle configuration and detector setup
+        self._setup_detector(config, n, detector, detector_params)
 
-    def _handle_input_data(self, column, df, x, y):
-        # --- Handle input data
-        # error - most likely pandas dataframe as argument instead of kwarg
-        if x is not None and not isinstance(x, list):
-            # TODO: KS: 2022-09-07: accept also numpy array, ndarray,np.matrix, pd.Series
+        # State variables
+        self.y_de_trended: list | np.ndarray | None = None
+        self.segments: SegmentList | None = None
+        self._result: DetectionResult | None = None
+
+    def _handle_input_data(self, column, df, x, y) -> None:
+        """Process and validate input data."""
+        # Accept numpy arrays, lists, or array-like objects
+        if (
+            x is not None
+            and not isinstance(x, (list, np.ndarray))
+            and not (hasattr(x, "__len__") and hasattr(x, "__getitem__"))
+        ):
             raise TypeError(
-                f"x must be a list, got {type(x)}. For pandas dataframe use 'df' keyword argument"
+                f"x must be a list or array-like, got {type(x)}. "
+                "For pandas dataframe use 'df' keyword argument"
             )
-        # error - no input data provided
+
         if x is None and y is None and df is None:
             raise ValueError("Provide timeseries data: either x and y or df.")
-        # error - ambiguous input data provided - both x,y and df provided
+
         if x is not None and y is not None and df is not None:
             raise ValueError(
                 "Provide timeseries data: either (x and y) or (df), not all."
             )
-        # input data provided as x and y
+
         if x is not None and y is not None:
-            self.x = x
-            self.y = y
-        # make warning if column provided but not dataframe
-        # if df is None and column is not None:
-        #     logger.warning("No dataframe provided, column argument will be ignored.")
-        # input data provided as dataframe
+            self.x = np.asarray(x, dtype=np.float64)
+            self.y = np.asarray(y, dtype=np.float64)
+
         if df is not None:
-            self.x = list(range(0, len(df.index.tolist()), 1))
-            self.y = df[column].tolist()
+            self.x = np.arange(len(df), dtype=np.float64)
+            col_data = df[column]
+            if hasattr(col_data, "squeeze"):
+                col_data = col_data.squeeze()
+            self.y = np.asarray(col_data.values, dtype=np.float64)
 
-    def calculate_segments(self) -> list[Segment]:
-        """Calculate segments with similar trend for the given timeserie.
+    def _setup_detector(
+        self,
+        config: Config | None,
+        n: int | None,
+        detector: str | BaseDetector,
+        detector_params: dict | None,
+    ) -> None:
+        """Configure the detection algorithm."""
+        # Handle legacy config/n parameters
+        if config is not None or n is not None:
+            if isinstance(detector, str) and detector != "sliding_window":
+                raise ValueError(
+                    "Cannot use 'config' or 'n' with non-sliding_window detector. "
+                    "Use detector_params instead."
+                )
 
-        Calculates:
-         - boundaries of segments
-        - slopes and offsets of windows
+            # Build config
+            if config is None:
+                config = Config()
+            if n is not None:
+                if config is not None and config != Config():
+                    raise ValueError("Provide either config or N, not both.")
+                config = Config(N=n)
 
+            self.config = config
+            self._detector = SlidingWindowDetector.from_config(config)
+
+        elif isinstance(detector, str):
+            # String detector name
+            params = detector_params or {}
+            self._detector = get_detector(detector, **params)
+
+            # Create a config for backward compatibility
+            if detector == "sliding_window":
+                self.config = Config(
+                    N=params.get("n", 60),
+                    overlap_ratio=params.get("overlap_ratio", 0.33),
+                    alpha=params.get("alpha", 2.0),
+                    beta=params.get("beta", 2.0),
+                )
+            else:
+                self.config = Config()  # Default config for non-sliding detectors
+
+        elif isinstance(detector, BaseDetector):
+            # Pre-configured detector instance
+            self._detector = detector
+            self.config = Config()  # Default config
+
+        else:
+            raise TypeError(
+                f"detector must be a string or BaseDetector, got {type(detector)}"
+            )
+
+    def calculate_segments(self, progress_callback=None) -> list[Segment]:
+        """Calculate segments with similar trend for the time series.
+
+        This is the main method for detecting trend segments. It uses the
+        configured detector algorithm.
+
+        Args:
+            progress_callback: Optional callback function(current, total) for
+                progress reporting during long computations.
+
+        Returns:
+            List of detected Segment objects.
+
+        Raises:
+            ValueError: If data is not initialized or too short.
         """
-        # check if initialized x and y
         if self.x is None or self.y is None:
             raise ValueError("Segmenter x and y must be initialized!")
-        # Read data from config to short variables
-        n = self.config.N
-        overlap_ratio = self.config.overlap_ratio
-        alpha = self.config.alpha
-        beta = self.config.beta
-        metrics_for_alpha = self.config.metrics_for_alpha
-        metrics_for_beta = self.config.metrics_for_beta
 
-        prev_fit = None
-
-        segments = SegmentList()
-
-        new_segment = {"s_start": 0, "slopes": [], "offsets": [], "starts": []}
-
-        off = self._set_offset(n, overlap_ratio)
-
-        for start in range(0, len(self.x) - n, off):
-            end = start + n
-            fit = np.polyfit(x=self.x[start:end], y=self.y[start:end], deg=1)
-            new_segment["slopes"].append(fit[0])
-            new_segment["offsets"].append(fit[1])
-            new_segment["starts"].append(start)
-
-            if prev_fit is not None:
-                # asses if the slope is similar to the previous one
-                prev_slope = float(prev_fit[0])
-                this_slope = float(fit[0])
-                r0 = calculate_error(prev_slope, this_slope, metrics=metrics_for_alpha)
-
-                # asses if the offset is similar to the previous one
-                prev_offset = float(prev_fit[1])
-                this_offset = float(fit[1])
-                r1 = calculate_error(prev_offset, this_offset, metrics=metrics_for_beta)
-
-                is_slope_different = r0 >= alpha if alpha is not None else False
-                is_offset_different = r1 >= beta if beta is not None else False
-                new_segment["is_slope_different"] = is_slope_different
-                new_segment["is_offset_different"] = is_offset_different
-
-                new_segment = self._finish_segment_if_needed(
-                    offset=off, new_segment=new_segment, segments=segments, start=start
-                )
-            prev_fit = fit
-
-        # add last segment
-        last_segment = Segment(
-            start=int(new_segment["s_start"]),
-            stop=int(len(self.x)),
-            slopes=new_segment["slopes"],
-            offsets=new_segment["offsets"],
-            starts=new_segment["starts"],
-        )
-
-        segments.append(last_segment)
-        self.segments = segments
-
-        # remove outstanding windows
-        last_segment.remove_outstanding_windows(self.config.N)
-
-        # add extra information to the segments
-        self._describe_segments()
-
-        return segments
-
-    def _finish_segment_if_needed(self, offset, new_segment, segments, start):
-        need_to_finish_segment = (
-            new_segment["is_slope_different"] or new_segment["is_offset_different"]
-        )
-        if need_to_finish_segment:
-            s_stop = _determine_trend_end_point(offset, start)
-            reason = self.describe_reason_for_new_segment(
-                new_segment["is_offset_different"], new_segment["is_slope_different"]
+        # Use the detector
+        if isinstance(self._detector, SlidingWindowDetector):
+            self._result = self._detector.fit(self.x, self.y).detect(
+                progress_callback=progress_callback
             )
+        else:
+            self._result = self._detector.fit_detect(self.x, self.y)
 
-            segment = Segment(
-                start=int(new_segment["s_start"]),
-                stop=int(s_stop),
-                slopes=new_segment["slopes"],
-                offsets=new_segment["offsets"],
-                starts=new_segment["starts"],
-                reason_for_new_segment=reason,
-            )
+        self.segments = self._result.segments
 
-            # remove outstanding windows
-            segment.remove_outstanding_windows(self.config.N)
+        # Compute detrended values for backward compatibility
+        self._compute_detrended_signal()
 
-            segments.append(segment)
-            new_segment["s_start"] = s_stop + 1
-            new_segment["slopes"] = []
-            new_segment["offsets"] = []
-            new_segment["starts"] = []
-        return new_segment
+        return list(self.segments)
 
-    @staticmethod
-    def _set_offset(n, overlap_ratio):
-        offset = int(n * overlap_ratio)
-        if offset == 0:
-            print("Overlap ratio is too small, setting it to 1")
-            print("N = ", n)
-            print("overlap_ratio = ", overlap_ratio)
-            offset = 1
-        return offset
+    def fit_detect(self) -> DetectionResult:
+        """Fit and detect segments in one call.
 
-    @staticmethod
-    def describe_reason_for_new_segment(
-        is_offset_different: bool, is_slope_different: bool
-    ) -> str:
-        """Describe reason for creating a new segment.
+        This is the new recommended API that returns a DetectionResult
+        with additional metadata.
 
-        Used for better explainability of the operation and decision-making.
+        Returns:
+            DetectionResult containing segments, breakpoints, and metadata.
+
+        Example:
+            >>> seg = Segmenter(x=x, y=y, detector="pelt")
+            >>> result = seg.fit_detect()
+            >>> print(f"Algorithm: {result.metadata['algorithm']}")
+            >>> print(f"Breakpoints: {result.breakpoints}")
         """
-        reason = "slope" if is_slope_different else "offset"
-        if is_slope_different and is_offset_different:
-            reason = "slope and offset"
-        return reason
+        self.calculate_segments()
+        return self._result
 
-    def _describe_segments(self) -> None:
-        """Add extra information about the segments."""
-        y_norm = []
-        for idx, segment in enumerate(self.segments):
-            start = segment.start
-            stop = segment.stop
+    def _compute_detrended_signal(self) -> None:
+        """Compute detrended signal for backward compatibility."""
+        if self.segments is None:
+            return
 
-            # x and y for the segment
+        y_detrended = []
+        for segment in self.segments:
+            start, stop = segment.start, segment.stop
             xx = self.x[start : stop + 1]
             yy = self.y[start : stop + 1]
 
-            # trend calculation
-            fit = np.polyfit(x=xx, y=yy, deg=1)
+            if len(xx) < 2:
+                y_detrended.extend([0.0] * len(yy))
+                continue
+
+            fit = np.polyfit(xx, yy, deg=1)
             fit_fn = np.poly1d(fit)
+            y_trend = fit_fn(xx)
+            y_detrended.extend(yy - y_trend)
 
-            # calculate point for the trend line
-            yt = np.array(fit_fn(xx))
+        self.y_de_trended = y_detrended
 
-            # FIXME: KS: 2022-09-02: Normalize (as below?)
-            # normalize each point in yy by value of corresponding point in yt,
-            # store results in ydtn
-            # ydtn = yy / yt
-
-            ydt = np.array(yy) - yt
-
-            # calculate standard deviation of the values with removed trend
-            s = np.std(ydt)
-
-            # calculate span of the values in the segment normalized by
-            # the mean value of the segment
-            span = 1000 * (np.max(ydt) - np.min(ydt)) // np.mean(yy)
-
-            # store de-trended values
-            y_norm.extend(ydt)
-
-            # store volatility measures for the segment
-            self.segments[idx].std = s
-            self.segments[idx].span = span
-            self.y_de_trended = y_norm
-            self.segments[idx].slope = fit[0]
-            self.segments[idx].offset = fit[1]
-            self.segments[idx].slopes_std = np.std(self.segments[idx].slopes)
-            self.segments[idx].offsets_std = np.std(self.segments[idx].offsets)
+    # ========== Visualization Methods (unchanged) ==========
 
     def plot_segment(
         self,
@@ -301,12 +271,12 @@ class Segmenter:
         col: str = "red",
         fig_size: FigSize = (10, 5),
     ) -> None:
-        """Plot segment with given index or multiple segments with given indices.
+        """Plot segment with given index or multiple segments.
 
         Args:
-            idx: index of the segment or list of indices of segments
-            col: color of the segment
-            fig_size: size of the figure
+            idx: Index of segment or list of indices.
+            col: Color for the segment.
+            fig_size: Figure size tuple (width, height).
         """
         _plot_segment(obj=self, idx=idx, col=col, fig_size=fig_size)
 
@@ -315,64 +285,80 @@ class Segmenter:
         idx: int,
         fig_size: FigSize = (10, 5),
     ) -> None:
-        """Plot segment with given index.
+        """Plot segment with trendlines, without surrounding context.
 
         Args:
-            idx: index of the segment or list of indices of segments
-            fig_size: size of the figure
+            idx: Index of segment to plot.
+            fig_size: Figure size tuple.
         """
         _plot_segment_with_trendlines_no_context(obj=self, idx=idx, fig_size=fig_size)
 
     def plot_segments(self, fig_size: FigSize = (8, 4)) -> None:
-        """Plot all segments and linear trend lines.
+        """Plot all segments with linear trend lines.
 
         Args:
-            fig_size: size of the figure e.g. (8, 4)
+            fig_size: Figure size tuple.
         """
         _plot_segments(self, fig_size)
 
     def plot_detrended_signal(self, fig_size: FigSize = (10, 5)) -> None:
-        """Plot de-trended signal.
+        """Plot the detrended signal.
 
         Args:
-            fig_size: size of the figure
+            fig_size: Figure size tuple.
         """
         _plot_detrended_signal(
             x=self.x, y_de_trended=self.y_de_trended, fig_size=fig_size
         )
 
+    # ========== Metrics Methods ==========
+
     def calc_area_outside_trend(self) -> float:
         """Calculate area outside trend.
 
-        Sum of absolute values of the points below/above the trend line.
-        Normalized by the mean value of the signal.
-        Normalized by the length of the signal.
+        This metric measures how well the detected trends fit the data.
+        Lower values indicate better fit.
 
         Returns:
-            area outside trend
-
+            Normalized sum of absolute deviations from trend lines.
         """
-        return np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y)
+        if self.y_de_trended is None:
+            raise ValueError(
+                "Must call calculate_segments() before calc_area_outside_trend()"
+            )
+        return float(np.sum(np.abs(self.y_de_trended)) / np.mean(self.y) / len(self.y))
 
+    # ========== Utility Methods ==========
 
-def _determine_trend_end_point(off: int, start: int) -> int:
-    """Determine end point of the trend.
+    @staticmethod
+    def describe_reason_for_new_segment(
+        is_offset_different: bool, is_slope_different: bool
+    ) -> str:
+        """Describe reason for creating a new segment.
 
-    Args:
-        off: offset of the window
-        start: start point of the trend
-    """
-    # TODO: KS: 2022-09-06: proper calculation of the end of the segment
-    s_stop = start + off / 2
-    return int(s_stop)
+        Args:
+            is_offset_different: Whether offset changed significantly.
+            is_slope_different: Whether slope changed significantly.
 
+        Returns:
+            Human-readable description of the reason.
+        """
+        if is_slope_different and is_offset_different:
+            return "slope and offset"
+        return "slope" if is_slope_different else "offset"
 
-# TODO: KS: 2022-09-06: Automatically determine parameters based on history:
-#  see the difference e.g. between AAPL and BTC
+    @staticmethod
+    def list_detectors() -> list[str]:
+        """List available detector algorithms.
 
-# TODO: KS: 2022-09-06: Check how it works with different timeframes
-#  (e.g. 1h, 4h, 1d)
+        Returns:
+            List of detector names that can be passed to the constructor.
+        """
+        return list(DETECTOR_REGISTRY.keys())
 
-# TODO: KS: 2022-09-06: improve quality on basic data V-shape or lambda-shape
-
-# TODO: KS: 2022-09-07: add docstrings
+    def __repr__(self) -> str:
+        n_segments = len(self.segments) if self.segments else 0
+        return (
+            f"Segmenter(detector={self._detector.name!r}, "
+            f"data_points={len(self.x)}, segments={n_segments})"
+        )
