@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "trend-classifier"
-version = "0.3.0"
+version = "0.3.1"
 description = "Package for automated signal segmentation, trend classification and analysis."
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -96,7 +96,7 @@ test = [
 ]
 
 [tool.bumpversion]
-current_version = "0.3.0"
+current_version = "0.3.1"
 tag = false
 commit = false
 tag_name = "v{new_version}"
@@ -115,7 +115,7 @@ replace = '__version__ = "{new_version}"'
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.3.0"
+version = "0.3.1"
 tag_format = "v$version"
 allowed_prefixes = ["Merge", "Revert", "Initial"]
 
